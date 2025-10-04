@@ -1,0 +1,16 @@
+{
+  "name": "mi-spa-esbuild-firebase-auth",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "esbuild src/main.ts --bundle --outfile=public/app.js --format=esm --sourcemap --watch --servedir=public",
+    "build": "esbuild src/main.ts --bundle --outfile=public/app.js --format=esm --sourcemap"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "firebase": "^10.14.1"
+  }
+}

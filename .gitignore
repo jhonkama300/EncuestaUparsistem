@@ -1,0 +1,9 @@
+node_modules
+.DS_Store
+dist
+public/app.js
+public/app.js.map
+.env
+.env.local
+.firebase
+serviceAccountKey.json

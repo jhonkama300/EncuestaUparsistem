@@ -7,8 +7,8 @@ import { Suspense } from "react"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Encuestas Uparsistem | Evaluación Docente",
-  description: "Sistema de encuestas para la evaluación de satisfacción al docente de seminarios, diplomados y eventos en Uparsistem.",
+  title: "Encuestas Uparsistem | Evaluación Ponente",
+  description: "Plataforma web para gestionar encuestas de satisfacción y evaluar el desempeño de ponentes en seminarios, diplomados y eventos institucionales de Uparsistem",
   generator: "Jhon Gonzalez Create",
   applicationName: "Encuestas Uparsistem",
   icons: {

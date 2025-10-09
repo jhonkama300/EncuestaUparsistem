@@ -7,9 +7,14 @@ import { Suspense } from "react"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Sistema de Login",
-  description: "Sistema de autenticación con número de documento",
-  generator: "v0.app",
+  title: "Encuestas Uparsistem | Evaluación Docente",
+  description: "Sistema de encuestas para la evaluación de satisfacción al docente de seminarios, diplomados y eventos en Uparsistem.",
+  generator: "Jhon Gonzalez Create",
+  applicationName: "Encuestas Uparsistem",
+  icons: {
+    icon: "/images/logoupar.png",
+    shortcut: "/favicon-16x16.png",
+  }
 }
 
 export default function RootLayout({

@@ -4,16 +4,15 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Plus, X, Users, UserPlus, UserCheck } from "lucide-react"
-import { getUniqueStudentValues, getStudentsByFilters, getAllStudents } from "@/lib/students"
+import { Plus, X, Users, UserCheck, Filter } from "lucide-react"
+import { getUniqueStudentValues, getStudentsByFilters } from "@/lib/students"
 import { getPonentes } from "@/lib/ponentes"
 
 interface SurveyAssignmentSelectorProps {
   ponenteId: string
   grupos: Array<{
-    jornada?: string
     programa?: string
     grupo?: string
     periodo?: string
@@ -34,63 +33,137 @@ export function SurveyAssignmentSelector({
   onEstudiantesIndividualesChange,
 }: SurveyAssignmentSelectorProps) {
   const [uniqueValues, setUniqueValues] = useState({
-    jornadas: [],
     programas: [],
     grupos: [],
     periodos: [],
     niveles: [],
   })
-  const [allStudents, setAllStudents] = useState<any[]>([])
   const [ponentes, setPonentes] = useState<any[]>([])
-  const [selectedStudent, setSelectedStudent] = useState("")
-  const [totalAsignados, setTotalAsignados] = useState(0)
 
-  const [currentGrupo, setCurrentGrupo] = useState({
-    jornada: "",
-    programa: "",
-    grupo: "",
-    periodo: "",
-    nivel: "",
-  })
+  const [filterPrograma, setFilterPrograma] = useState("")
+  const [filterNivel, setFilterNivel] = useState("")
+  const [filterPeriodo, setFilterPeriodo] = useState("")
+  const [filterGrupo, setFilterGrupo] = useState("")
+
+  const [searchPrograma, setSearchPrograma] = useState("")
+  const [searchNivel, setSearchNivel] = useState("")
+  const [searchPeriodo, setSearchPeriodo] = useState("")
+  const [searchGrupo, setSearchGrupo] = useState("")
+
+  const [totalAsignados, setTotalAsignados] = useState(0)
+  const [filteredGroups, setFilteredGroups] = useState<string[]>([])
+
+  const canSelectNivel = !!filterPrograma
+  const canSelectPeriodo = !!filterPrograma && !!filterNivel
+  const canSelectGroup = !!filterPrograma && !!filterNivel && !!filterPeriodo
 
   useEffect(() => {
     loadData()
   }, [])
 
   useEffect(() => {
-    calculateTotalAsignados()
-  }, [grupos, estudiantesIndividuales])
+    const timer = setTimeout(() => {
+      calculateTotalAsignados()
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [grupos])
+
+  useEffect(() => {
+    filterAvailableGroups()
+  }, [filterPrograma, filterNivel, filterPeriodo, uniqueValues])
+
+  useEffect(() => {
+    setFilterGrupo("")
+    setSearchGrupo("")
+  }, [filterPrograma, filterNivel, filterPeriodo])
+
+  useEffect(() => {
+    if (!filterPrograma) {
+      setFilterNivel("")
+      setSearchNivel("")
+      setFilterPeriodo("")
+      setSearchPeriodo("")
+      setFilterGrupo("")
+      setSearchGrupo("")
+    }
+  }, [filterPrograma])
+
+  useEffect(() => {
+    if (!filterNivel) {
+      setFilterPeriodo("")
+      setSearchPeriodo("")
+      setFilterGrupo("")
+      setSearchGrupo("")
+    }
+  }, [filterNivel])
+
+  useEffect(() => {
+    if (!filterPeriodo) {
+      setFilterGrupo("")
+      setSearchGrupo("")
+    }
+  }, [filterPeriodo])
 
   const loadData = async () => {
     const values = await getUniqueStudentValues()
     setUniqueValues(values)
-    const students = await getAllStudents()
-    setAllStudents(students)
     const ponentesData = await getPonentes()
     setPonentes(ponentesData)
   }
 
-  const calculateTotalAsignados = async () => {
-    let total = estudiantesIndividuales.length
-
-    for (const grupo of grupos) {
-      const students = await getStudentsByFilters(grupo)
-      total += students.length
+  const filterAvailableGroups = async () => {
+    if (!filterPrograma && !filterNivel && !filterPeriodo) {
+      setFilteredGroups(uniqueValues.grupos)
+      return
     }
 
+    const filters: any = {}
+    if (filterPrograma) filters.programa = filterPrograma
+    if (filterNivel) filters.nivel = filterNivel
+    if (filterPeriodo) filters.periodo = filterPeriodo
+
+    const students = await getStudentsByFilters(filters)
+    const gruposSet = new Set(students.map((s: any) => s.grupo).filter(Boolean))
+    setFilteredGroups(Array.from(gruposSet).sort())
+  }
+
+  const calculateTotalAsignados = async () => {
+    if (grupos.length === 0) {
+      setTotalAsignados(0)
+      return
+    }
+
+    const groupCounts = await Promise.all(
+      grupos.map(async (grupo) => {
+        const students = await getStudentsByFilters(grupo)
+        return students.length
+      }),
+    )
+    const total = groupCounts.reduce((sum, count) => sum + count, 0)
     setTotalAsignados(total)
   }
 
   const addGrupo = () => {
-    if (
-      currentGrupo.jornada ||
-      currentGrupo.programa ||
-      currentGrupo.grupo ||
-      currentGrupo.periodo ||
-      currentGrupo.nivel
-    ) {
-      onGruposChange([...grupos, { ...currentGrupo }])
-      setCurrentGrupo({ jornada: "", programa: "", grupo: "", periodo: "", nivel: "" })
+    const newGrupo: any = {}
+    if (filterPrograma) newGrupo.programa = filterPrograma
+    if (filterNivel) newGrupo.nivel = filterNivel
+    if (filterPeriodo) newGrupo.periodo = filterPeriodo
+    if (filterGrupo) newGrupo.grupo = filterGrupo
+
+    const exists = grupos.some(
+      (g) =>
+        g.programa === newGrupo.programa &&
+        g.nivel === newGrupo.nivel &&
+        g.periodo === newGrupo.periodo &&
+        g.grupo === newGrupo.grupo,
+    )
+
+    if (!exists && Object.keys(newGrupo).length > 0) {
+      onGruposChange([...grupos, newGrupo])
+      setFilterPrograma("")
+      setFilterNivel("")
+      setFilterPeriodo("")
+      setFilterGrupo("")
     }
   }
 
@@ -98,37 +171,21 @@ export function SurveyAssignmentSelector({
     onGruposChange(grupos.filter((_, i) => i !== index))
   }
 
-  const addEstudianteIndividual = () => {
-    if (selectedStudent && !estudiantesIndividuales.includes(selectedStudent)) {
-      onEstudiantesIndividualesChange([...estudiantesIndividuales, selectedStudent])
-      setSelectedStudent("")
-    }
-  }
-
-  const removeEstudianteIndividual = (documento: string) => {
-    onEstudiantesIndividualesChange(estudiantesIndividuales.filter((d) => d !== documento))
-  }
-
-  const getGrupoLabel = (grupo: any) => {
-    const parts = []
-    if (grupo.jornada) parts.push(`Jornada: ${grupo.jornada}`)
-    if (grupo.programa) parts.push(`Programa: ${grupo.programa}`)
-    if (grupo.grupo) parts.push(`Grupo: ${grupo.grupo}`)
-    if (grupo.periodo) parts.push(`Período: ${grupo.periodo}`)
-    if (grupo.nivel) parts.push(`Nivel: ${grupo.nivel}`)
-    return parts.join(" • ")
-  }
-
-  const getStudentName = (documento: string) => {
-    const student = allStudents.find((s) => s.documento === documento)
-    return student ? `${student.primerNombre} ${student.primerApellido} (${documento})` : documento
-  }
-
   const selectedPonente = ponentes.find((p) => p.id === ponenteId)
+
+  const filteredProgramas = uniqueValues.programas.filter((p: string) =>
+    p.toLowerCase().includes(searchPrograma.toLowerCase()),
+  )
+  const filteredNiveles = uniqueValues.niveles.filter((n: string) =>
+    n.toLowerCase().includes(searchNivel.toLowerCase()),
+  )
+  const filteredPeriodos = uniqueValues.periodos.filter((p: string) =>
+    p.toLowerCase().includes(searchPeriodo.toLowerCase()),
+  )
+  const filteredGruposSearch = filteredGroups.filter((g: string) => g.toLowerCase().includes(searchGrupo.toLowerCase()))
 
   return (
     <div className="space-y-6">
-      {/* Seleccionar ponente */}
       <Card className="border-blue-200 bg-blue-50/50">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -138,25 +195,32 @@ export function SurveyAssignmentSelector({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label className="text-sm">Ponente</Label>
-            <Select value={ponenteId} onValueChange={onPonenteChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar ponente" />
-              </SelectTrigger>
-              <SelectContent>
+            <Label className="text-sm">Ponente *</Label>
+            <div className="relative">
+              <Input
+                type="text"
+                placeholder="Buscar ponente..."
+                value={selectedPonente?.nombre || ""}
+                onChange={(e) => {
+                  const search = e.target.value.toLowerCase()
+                  const found = ponentes.find((p) => p.nombre.toLowerCase().includes(search))
+                  if (found) onPonenteChange(found.id)
+                }}
+                list="ponentes-list"
+                className="w-full"
+              />
+              <datalist id="ponentes-list">
                 {ponentes.map((ponente) => (
-                  <SelectItem key={ponente.id} value={ponente.id}>
-                    {ponente.nombre} - {ponente.cargo || "Sin cargo"}
-                  </SelectItem>
+                  <option key={ponente.id} value={ponente.nombre} />
                 ))}
-              </SelectContent>
-            </Select>
+              </datalist>
+            </div>
           </div>
           {selectedPonente && (
             <div className="p-3 bg-white rounded-lg border border-blue-200">
               <p className="text-sm font-semibold text-blue-900">{selectedPonente.nombre}</p>
               {selectedPonente.cargo && <p className="text-xs text-blue-700">{selectedPonente.cargo}</p>}
-              {selectedPonente.institucion && <p className="text-xs text-blue-600">{selectedPonente.institucion}</p>}
+              {selectedPonente.numero && <p className="text-xs text-blue-600">Número: {selectedPonente.numero}</p>}
               {selectedPonente.descripcion && (
                 <p className="text-xs text-gray-600 mt-2">{selectedPonente.descripcion}</p>
               )}
@@ -165,139 +229,242 @@ export function SurveyAssignmentSelector({
         </CardContent>
       </Card>
 
-      {/* Resumen */}
-      <Card className="border-emerald-200 bg-emerald-50/50">
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-2 text-emerald-800">
-            <Users className="h-5 w-5" />
-            <span className="font-semibold">Total de estudiantes que evaluarán: {totalAsignados}</span>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Asignar por grupos */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Asignar Grupos de Estudiantes
+            <Filter className="h-5 w-5" />
+            Filtros de Asignación (Opcional)
           </CardTitle>
+          <p className="text-sm text-gray-600 mt-2">
+            Los filtros se habilitan en orden: Programa → Nivel → Período → Grupo
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Programa Filter */}
             <div className="space-y-2">
-              <Label className="text-sm">Jornada</Label>
-              <Select
-                value={currentGrupo.jornada}
-                onValueChange={(v) => setCurrentGrupo({ ...currentGrupo, jornada: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="default">Todas</SelectItem>
-                  {uniqueValues.jornadas.map((j: string) => (
-                    <SelectItem key={j} value={j}>
-                      {j}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="text-sm">Programa *</Label>
+              <Input
+                type="text"
+                placeholder="Buscar programa..."
+                value={searchPrograma || filterPrograma}
+                onChange={(e) => {
+                  setSearchPrograma(e.target.value)
+                  const found = filteredProgramas.find((p: string) =>
+                    p.toLowerCase().includes(e.target.value.toLowerCase()),
+                  )
+                  if (found) setFilterPrograma(found)
+                }}
+                list="programas-list"
+              />
+              <datalist id="programas-list">
+                {filteredProgramas.map((p: string) => (
+                  <option key={p} value={p} />
+                ))}
+              </datalist>
+              {filterPrograma && (
+                <Badge variant="secondary" className="mt-1">
+                  {filterPrograma}
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      setFilterPrograma("")
+                      setSearchPrograma("")
+                    }}
+                    className="h-4 w-4 p-0 ml-2"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              )}
             </div>
 
+            {/* Nivel Filter */}
             <div className="space-y-2">
-              <Label className="text-sm">Programa</Label>
-              <Select
-                value={currentGrupo.programa}
-                onValueChange={(v) => setCurrentGrupo({ ...currentGrupo, programa: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="default">Todos</SelectItem>
-                  {uniqueValues.programas.map((p: string) => (
-                    <SelectItem key={p} value={p}>
-                      {p}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="text-sm flex items-center gap-2">
+                Nivel *
+                {!canSelectNivel && <span className="text-xs text-amber-600 font-normal">(Requiere Programa)</span>}
+              </Label>
+              <Input
+                type="text"
+                placeholder={canSelectNivel ? "Buscar nivel..." : "Selecciona Programa primero"}
+                value={searchNivel || filterNivel}
+                onChange={(e) => {
+                  if (!canSelectNivel) return
+                  setSearchNivel(e.target.value)
+                  const found = filteredNiveles.find((n: string) =>
+                    n.toLowerCase().includes(e.target.value.toLowerCase()),
+                  )
+                  if (found) setFilterNivel(found)
+                }}
+                list="niveles-list"
+                disabled={!canSelectNivel}
+                className={!canSelectNivel ? "opacity-50 cursor-not-allowed" : ""}
+              />
+              <datalist id="niveles-list">
+                {filteredNiveles.map((n: string) => (
+                  <option key={n} value={n} />
+                ))}
+              </datalist>
+              {filterNivel && (
+                <Badge variant="secondary" className="mt-1">
+                  {filterNivel}
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      setFilterNivel("")
+                      setSearchNivel("")
+                    }}
+                    className="h-4 w-4 p-0 ml-2"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              )}
             </div>
 
+            {/* Periodo Filter */}
             <div className="space-y-2">
-              <Label className="text-sm">Grupo</Label>
-              <Select value={currentGrupo.grupo} onValueChange={(v) => setCurrentGrupo({ ...currentGrupo, grupo: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="default">Todos</SelectItem>
-                  {uniqueValues.grupos.map((g: string) => (
-                    <SelectItem key={g} value={g}>
-                      {g}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="text-sm flex items-center gap-2">
+                Período *
+                {!canSelectPeriodo && (
+                  <span className="text-xs text-amber-600 font-normal">(Requiere Programa y Nivel)</span>
+                )}
+              </Label>
+              <Input
+                type="text"
+                placeholder={canSelectPeriodo ? "Buscar período..." : "Selecciona Programa y Nivel primero"}
+                value={searchPeriodo || filterPeriodo}
+                onChange={(e) => {
+                  if (!canSelectPeriodo) return
+                  setSearchPeriodo(e.target.value)
+                  const found = filteredPeriodos.find((p: string) =>
+                    p.toLowerCase().includes(e.target.value.toLowerCase()),
+                  )
+                  if (found) setFilterPeriodo(found)
+                }}
+                list="periodos-list"
+                disabled={!canSelectPeriodo}
+                className={!canSelectPeriodo ? "opacity-50 cursor-not-allowed" : ""}
+              />
+              <datalist id="periodos-list">
+                {filteredPeriodos.map((p: string) => (
+                  <option key={p} value={p} />
+                ))}
+              </datalist>
+              {filterPeriodo && (
+                <Badge variant="secondary" className="mt-1">
+                  {filterPeriodo}
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      setFilterPeriodo("")
+                      setSearchPeriodo("")
+                    }}
+                    className="h-4 w-4 p-0 ml-2"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              )}
             </div>
 
+            {/* Grupo Filter */}
             <div className="space-y-2">
-              <Label className="text-sm">Período</Label>
-              <Select
-                value={currentGrupo.periodo}
-                onValueChange={(v) => setCurrentGrupo({ ...currentGrupo, periodo: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="default">Todos</SelectItem>
-                  {uniqueValues.periodos.map((p: string) => (
-                    <SelectItem key={p} value={p}>
-                      {p}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm">Nivel</Label>
-              <Select value={currentGrupo.nivel} onValueChange={(v) => setCurrentGrupo({ ...currentGrupo, nivel: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="default">Todos</SelectItem>
-                  {uniqueValues.niveles.map((n: string) => (
-                    <SelectItem key={n} value={n}>
-                      {n}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="text-sm flex items-center gap-2">
+                Grupo
+                {!canSelectGroup && (
+                  <span className="text-xs text-amber-600 font-normal">(Requiere los 3 filtros anteriores)</span>
+                )}
+              </Label>
+              <Input
+                type="text"
+                placeholder={canSelectGroup ? "Buscar grupo..." : "Completa los 3 filtros anteriores"}
+                value={searchGrupo || filterGrupo}
+                onChange={(e) => {
+                  if (!canSelectGroup) return
+                  setSearchGrupo(e.target.value)
+                  const found = filteredGruposSearch.find((g: string) =>
+                    g.toLowerCase().includes(e.target.value.toLowerCase()),
+                  )
+                  if (found) setFilterGrupo(found)
+                }}
+                list="grupos-list"
+                disabled={!canSelectGroup}
+                className={!canSelectGroup ? "opacity-50 cursor-not-allowed" : ""}
+              />
+              <datalist id="grupos-list">
+                {filteredGruposSearch.map((g: string) => (
+                  <option key={g} value={g} />
+                ))}
+              </datalist>
+              {filterGrupo && (
+                <Badge variant="secondary" className="mt-1">
+                  {filterGrupo}
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      setFilterGrupo("")
+                      setSearchGrupo("")
+                    }}
+                    className="h-4 w-4 p-0 ml-2"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              )}
             </div>
           </div>
 
-          <Button type="button" onClick={addGrupo} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
-            <Plus className="h-4 w-4" />
-            Agregar Grupo
+          {!canSelectGroup && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-800">
+                <strong>Nota:</strong> Los filtros se habilitan en orden secuencial. Primero selecciona Programa, luego
+                Nivel, después Período, y finalmente podrás elegir un Grupo específico.
+              </p>
+            </div>
+          )}
+
+          <Button
+            type="button"
+            onClick={addGrupo}
+            disabled={!filterPrograma && !filterNivel && !filterPeriodo && !filterGrupo}
+            className="w-full bg-emerald-600 hover:bg-emerald-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Agregar Grupo con Filtros Seleccionados
           </Button>
 
           {grupos.length > 0 && (
             <div className="space-y-2">
               <Label className="text-sm font-semibold">Grupos asignados:</Label>
-              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
                 {grupos.map((grupo, index) => (
-                  <Badge key={index} variant="secondary" className="flex items-center justify-between gap-2 py-2 px-3">
-                    <span className="text-xs">{getGrupoLabel(grupo)}</span>
+                  <Badge
+                    key={index}
+                    variant="secondary"
+                    className="flex items-center justify-between gap-2 py-2 px-3 w-full"
+                  >
+                    <span className="text-xs flex-1">
+                      {grupo.programa && `Programa: ${grupo.programa}`}
+                      {grupo.nivel && ` | Nivel: ${grupo.nivel}`}
+                      {grupo.periodo && ` | Período: ${grupo.periodo}`}
+                      {grupo.grupo && ` | Grupo: ${grupo.grupo}`}
+                    </span>
                     <Button
                       type="button"
                       size="icon"
                       variant="ghost"
                       onClick={() => removeGrupo(index)}
-                      className="h-4 w-4 p-0 hover:bg-red-100"
+                      className="h-4 w-4 p-0 hover:bg-red-100 flex-shrink-0"
                     >
                       <X className="h-3 w-3" />
                     </Button>
@@ -306,65 +473,16 @@ export function SurveyAssignmentSelector({
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
 
-      {/* Asignar estudiantes individuales */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <UserPlus className="h-5 w-5" />
-            Agregar Estudiantes Individuales
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Seleccionar estudiante" />
-              </SelectTrigger>
-              <SelectContent>
-                {allStudents.map((student) => (
-                  <SelectItem key={student.documento} value={student.documento}>
-                    {student.primerNombre} {student.primerApellido} - {student.documento}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              type="button"
-              onClick={addEstudianteIndividual}
-              className="gap-2 bg-emerald-600 hover:bg-emerald-700"
-            >
-              <Plus className="h-4 w-4" />
-              Agregar
-            </Button>
-          </div>
-
-          {estudiantesIndividuales.length > 0 && (
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">Estudiantes individuales asignados:</Label>
-              <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                {estudiantesIndividuales.map((documento) => (
-                  <Badge
-                    key={documento}
-                    variant="secondary"
-                    className="flex items-center justify-between gap-2 py-2 px-3"
-                  >
-                    <span className="text-xs">{getStudentName(documento)}</span>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => removeEstudianteIndividual(documento)}
-                      className="h-4 w-4 p-0 hover:bg-red-100"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </Badge>
-                ))}
-              </div>
-            </div>
+          {grupos.length > 0 && (
+            <Card className="border-emerald-200 bg-emerald-50/50">
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2 text-emerald-800">
+                  <Users className="h-5 w-5" />
+                  <span className="font-semibold">Total de estudiantes asignados: {totalAsignados}</span>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </CardContent>
       </Card>

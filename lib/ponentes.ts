@@ -1,12 +1,12 @@
-import { collection, addDoc, getDocs, query, where } from "firebase/firestore"
+import { collection, addDoc, getDocs, query, where, doc, updateDoc } from "firebase/firestore"
 import { db } from "./firebase"
 
 export interface PonenteData {
   nombre: string
+  numero?: string // Added numero field
   descripcion: string
   cargo?: string
   institucion?: string
-  // Filtros para asignar a grupos específicos
   jornada?: string
   programa?: string
   grupo?: string
@@ -120,5 +120,17 @@ export async function getPonentesByFilters(filters: {
   } catch (error) {
     console.error("[v0] Error obteniendo ponentes filtrados:", error)
     return []
+  }
+}
+
+export async function deletePonente(ponenteId: string): Promise<void> {
+  try {
+    console.log("[v0] Eliminando ponente:", ponenteId)
+    const ponenteRef = doc(db, "ponentes", ponenteId)
+    await updateDoc(ponenteRef, { activo: false })
+    console.log("[v0] Ponente marcado como inactivo:", ponenteId)
+  } catch (error) {
+    console.error("[v0] Error eliminando ponente:", error)
+    throw error
   }
 }

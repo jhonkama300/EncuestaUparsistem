@@ -25,14 +25,49 @@ export interface SurveyData {
     }[]
     estudiantesIndividuales?: string[]
   }
+  // Categorization fields
+  programa?: string
+  nivel?: string
+  periodo?: string
+  grupo?: string
+  // Date/time fields
+  fechaEncuesta?: string // Date when survey was conducted
+  horaInicio?: string // Start time of seminar (e.g., "06:00")
+  horaFin?: string // End time of seminar (e.g., "20:00")
   activa: boolean
   fechaCreacion: string
 }
 
+function deepClean(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return undefined
+  }
+
+  if (Array.isArray(obj)) {
+    const cleaned = obj.map((item) => deepClean(item)).filter((item) => item !== undefined)
+    return cleaned.length > 0 ? cleaned : undefined
+  }
+
+  if (typeof obj === "object") {
+    const cleaned: any = {}
+    for (const [key, value] of Object.entries(obj)) {
+      const cleanedValue = deepClean(value)
+      if (cleanedValue !== undefined && cleanedValue !== "" && cleanedValue !== null) {
+        cleaned[key] = cleanedValue
+      }
+    }
+    return Object.keys(cleaned).length > 0 ? cleaned : undefined
+  }
+
+  return obj === "" ? undefined : obj
+}
+
 export async function createSurvey(surveyData: SurveyData) {
   try {
+    const cleanedData = deepClean(surveyData)
+
     const surveysRef = collection(db, "encuestas")
-    const docRef = await addDoc(surveysRef, surveyData)
+    const docRef = await addDoc(surveysRef, cleanedData)
     console.log("[v0] Encuesta creada con ID:", docRef.id)
     return docRef.id
   } catch (error) {
@@ -43,8 +78,10 @@ export async function createSurvey(surveyData: SurveyData) {
 
 export async function updateSurvey(surveyId: string, surveyData: Partial<SurveyData>) {
   try {
+    const cleanedData = deepClean(surveyData)
+
     const surveyRef = doc(db, "encuestas", surveyId)
-    await updateDoc(surveyRef, surveyData)
+    await updateDoc(surveyRef, cleanedData)
     console.log("[v0] Encuesta actualizada:", surveyId)
   } catch (error) {
     console.error("[v0] Error actualizando encuesta:", error)
@@ -54,9 +91,21 @@ export async function updateSurvey(surveyId: string, surveyData: Partial<SurveyD
 
 export async function deleteSurvey(surveyId: string) {
   try {
+    // Delete all responses associated with this survey
+    const respuestasRef = collection(db, "respuestas")
+    const q = query(respuestasRef, where("encuestaId", "==", surveyId))
+    const respuestasSnapshot = await getDocs(q)
+
+    await Promise.all(
+      respuestasSnapshot.docs.map(async (respuestaDoc) => {
+        await deleteDoc(doc(db, "respuestas", respuestaDoc.id))
+      }),
+    )
+
+    // Delete the survey itself
     const surveyRef = doc(db, "encuestas", surveyId)
     await deleteDoc(surveyRef)
-    console.log("[v0] Encuesta eliminada:", surveyId)
+    console.log("[v0] Encuesta y respuestas eliminadas:", surveyId)
   } catch (error) {
     console.error("[v0] Error eliminando encuesta:", error)
     throw error
@@ -69,12 +118,52 @@ export async function getSurveys() {
     const q = query(surveysRef, where("activa", "==", true))
     const querySnapshot = await getDocs(q)
 
-    return querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }))
+    const respuestasRef = collection(db, "respuestas")
+
+    // Get all surveys with their response counts
+    const surveysWithCounts = await Promise.all(
+      querySnapshot.docs.map(async (surveyDoc) => {
+        const qRespuestas = query(respuestasRef, where("encuestaId", "==", surveyDoc.id))
+        const respuestasSnapshot = await getDocs(qRespuestas)
+
+        return {
+          id: surveyDoc.id,
+          ...surveyDoc.data(),
+          respuestas: respuestasSnapshot.size,
+        }
+      }),
+    )
+
+    return surveysWithCounts
   } catch (error) {
     console.error("Error obteniendo encuestas:", error)
+    return []
+  }
+}
+
+export async function getAllSurveys() {
+  try {
+    const surveysRef = collection(db, "encuestas")
+    const querySnapshot = await getDocs(surveysRef)
+
+    const respuestasRef = collection(db, "respuestas")
+
+    const surveysWithCounts = await Promise.all(
+      querySnapshot.docs.map(async (surveyDoc) => {
+        const qRespuestas = query(respuestasRef, where("encuestaId", "==", surveyDoc.id))
+        const respuestasSnapshot = await getDocs(qRespuestas)
+
+        return {
+          id: surveyDoc.id,
+          ...surveyDoc.data(),
+          respuestas: respuestasSnapshot.size,
+        }
+      }),
+    )
+
+    return surveysWithCounts
+  } catch (error) {
+    console.error("Error obteniendo todas las encuestas:", error)
     return []
   }
 }
@@ -104,11 +193,9 @@ export async function getAssignedSurveys(documento: string) {
         return true
       }
 
-      // Verificar si coincide con algún grupo
       if (asignacion.grupos && asignacion.grupos.length > 0) {
         return asignacion.grupos.some((grupo: any) => {
           return (
-            (!grupo.jornada || grupo.jornada === estudiante.jornada) &&
             (!grupo.programa || grupo.programa === estudiante.programa) &&
             (!grupo.grupo || grupo.grupo === estudiante.grupo) &&
             (!grupo.periodo || grupo.periodo === estudiante.periodo) &&
@@ -161,6 +248,38 @@ export async function submitSurveyResponse(surveyId: string, documento: string, 
   }
 }
 
+export async function getSurveyResponses(surveyId: string) {
+  try {
+    const respuestasRef = collection(db, "respuestas")
+    const q = query(respuestasRef, where("encuestaId", "==", surveyId))
+    const respuestasSnapshot = await getDocs(q)
+
+    const estudiantesRef = collection(db, "estudiantes")
+
+    const responsesWithStudents = await Promise.all(
+      respuestasSnapshot.docs.map(async (respuestaDoc) => {
+        const respuesta = respuestaDoc.data()
+        const qEstudiante = query(estudiantesRef, where("documento", "==", respuesta.documento))
+        const estudianteSnapshot = await getDocs(qEstudiante)
+
+        const estudiante = estudianteSnapshot.empty ? null : estudianteSnapshot.docs[0].data()
+
+        return {
+          id: respuestaDoc.id,
+          ...respuesta,
+          nombreEstudiante: estudiante?.nombre || "Desconocido",
+          grupoEstudiante: estudiante?.grupo || "N/A",
+        }
+      }),
+    )
+
+    return responsesWithStudents
+  } catch (error) {
+    console.error("Error obteniendo respuestas de encuesta:", error)
+    return []
+  }
+}
+
 export async function getSurveyStats() {
   try {
     const surveysRef = collection(db, "encuestas")
@@ -168,13 +287,13 @@ export async function getSurveyStats() {
     const surveysSnapshot = await getDocs(qSurveys)
 
     const respuestasRef = collection(db, "respuestas")
-    const respuestasSnapshot = await getDocs(respuestasRef)
+    const respuestasSnapshot2 = await getDocs(respuestasRef)
 
     const estudiantesRef = collection(db, "estudiantes")
     const estudiantesSnapshot = await getDocs(estudiantesRef)
 
     const totalSurveys = surveysSnapshot.size
-    const totalRespuestas = respuestasSnapshot.size
+    const totalRespuestas = respuestasSnapshot2.size
     const totalEstudiantes = estudiantesSnapshot.size
 
     const tasa = totalEstudiantes > 0 ? Math.round((totalRespuestas / (totalEstudiantes * totalSurveys)) * 100) : 0

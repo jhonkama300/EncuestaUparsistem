@@ -35,38 +35,40 @@ export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyF
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
       <header className="border-b border-emerald-200 bg-gradient-to-r from-emerald-600 to-green-600 shadow-lg">
-        <div className="container mx-auto flex items-center justify-between px-4 py-4">
-          <div className="text-white">
-            <h1 className="text-2xl font-bold">{survey.titulo}</h1>
-            <p className="text-sm text-emerald-100">{user.nombre}</p>
+        <div className="container mx-auto flex items-center justify-between px-4 py-3 sm:py-4">
+          <div className="text-white flex-1 min-w-0">
+            <h1 className="text-lg sm:text-2xl font-bold truncate">{survey.titulo}</h1>
+            <p className="text-xs sm:text-sm text-emerald-100 truncate">{user.nombre}</p>
           </div>
           <Button
             variant="outline"
             onClick={onLogout}
-            className="gap-2 border-white bg-white/10 text-white hover:bg-white/20"
+            className="gap-2 border-white bg-white/10 text-white hover:bg-white/20 ml-2 text-xs sm:text-sm"
+            size="sm"
           >
-            <LogOut className="h-4 w-4" />
-            Cerrar Sesión
+            <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Cerrar Sesión</span>
+            <span className="sm:hidden">Salir</span>
           </Button>
         </div>
       </header>
 
-      <main className="container mx-auto max-w-3xl p-4 py-8">
-        <Button onClick={onBack} variant="ghost" className="mb-4 gap-2 text-emerald-700">
-          <ArrowLeft className="h-4 w-4" />
+      <main className="container mx-auto max-w-4xl p-3 sm:p-4 py-4 sm:py-8">
+        <Button onClick={onBack} variant="ghost" className="mb-3 sm:mb-4 gap-2 text-emerald-700 text-sm">
+          <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
           Volver a mis encuestas
         </Button>
 
         <Card className="border-emerald-200">
-          <CardHeader>
-            <CardTitle className="text-emerald-800">{survey.titulo}</CardTitle>
-            <CardDescription>{survey.descripcion}</CardDescription>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-emerald-800 text-lg sm:text-xl">{survey.titulo}</CardTitle>
+            <CardDescription className="text-sm">{survey.descripcion}</CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+          <CardContent className="p-4 sm:p-6">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
               {survey.preguntas?.map((pregunta: any, index: number) => (
-                <div key={index} className="space-y-3 rounded-lg border border-emerald-100 bg-white p-4">
-                  <Label className="text-base font-semibold text-gray-800">
+                <div key={index} className="space-y-3 rounded-lg border border-emerald-100 bg-white p-3 sm:p-4">
+                  <Label className="text-sm sm:text-base font-semibold text-gray-800">
                     {index + 1}. {pregunta.texto}
                   </Label>
 
@@ -75,7 +77,7 @@ export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyF
                       {["Excelente", "Bueno", "Regular", "Malo"].map((opcion) => (
                         <div key={opcion} className="flex items-center space-x-2">
                           <RadioGroupItem value={opcion.toLowerCase()} id={`p${index}-${opcion}`} />
-                          <Label htmlFor={`p${index}-${opcion}`} className="font-normal">
+                          <Label htmlFor={`p${index}-${opcion}`} className="font-normal text-sm sm:text-base">
                             {opcion}
                           </Label>
                         </div>
@@ -85,11 +87,11 @@ export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyF
 
                   {pregunta.tipo === "escala" && (
                     <RadioGroup value={responses[index] || ""} onValueChange={(value) => updateResponse(index, value)}>
-                      <div className="flex gap-4">
+                      <div className="flex gap-2 sm:gap-4 justify-center">
                         {[1, 2, 3, 4, 5].map((num) => (
                           <div key={num} className="flex flex-col items-center">
                             <RadioGroupItem value={num.toString()} id={`p${index}-${num}`} />
-                            <Label htmlFor={`p${index}-${num}`} className="mt-1 font-normal">
+                            <Label htmlFor={`p${index}-${num}`} className="mt-1 font-normal text-xs sm:text-sm">
                               {num}
                             </Label>
                           </div>
@@ -103,6 +105,7 @@ export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyF
                       value={responses[index] || ""}
                       onChange={(e) => updateResponse(index, e.target.value)}
                       placeholder="Tu respuesta..."
+                      className="text-sm sm:text-base"
                     />
                   )}
 
@@ -112,6 +115,7 @@ export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyF
                       onChange={(e) => updateResponse(index, e.target.value)}
                       placeholder="Tu respuesta..."
                       rows={4}
+                      className="text-sm sm:text-base"
                     />
                   )}
                 </div>
@@ -119,7 +123,7 @@ export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyF
 
               <Button
                 type="submit"
-                className="w-full bg-emerald-600 hover:bg-emerald-700"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-sm sm:text-base"
                 size="lg"
                 disabled={Object.keys(responses).length < (survey.preguntas?.length || 0)}
               >

@@ -58,16 +58,30 @@ export function LoginView({ onLoginStudent, onLoginAdmin }: LoginViewProps) {
       return
     }
 
-    if (isAdmin && !password.trim()) {
-      setError("Por favor ingresa tu contraseña")
-      return
-    }
-
     setLoading(true)
     try {
-      if (isAdmin) {
+      const userData = await getUserDataByDocument(documentNumber)
+
+      if (!userData) {
+        throw new Error("Número de documento no registrado en la base de datos")
+      }
+
+      if (userData.rol === "admin") {
+        if (!isAdmin) {
+          setIsAdmin(true)
+          setLoading(false)
+          setError("Por favor ingresa tu contraseña de administrador")
+          return
+        }
+        // Admin login requires password
+        if (!password.trim()) {
+          setError("Por favor ingresa tu contraseña")
+          setLoading(false)
+          return
+        }
         await onLoginAdmin(documentNumber, password)
       } else {
+        // Student login doesn't require password
         await onLoginStudent(documentNumber)
       }
     } catch (err: any) {

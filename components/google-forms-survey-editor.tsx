@@ -105,7 +105,7 @@ export function GoogleFormsSurveyEditor({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Encabezado de la encuesta */}
       <Card className="border-t-8 border-t-emerald-600">
         <CardHeader className="space-y-4">
@@ -165,7 +165,7 @@ export function GoogleFormsSurveyEditor({
                         <SelectItem value="checkbox">
                           <div className="flex items-center gap-2">
                             <CheckSquare className="h-4 w-4" />
-                            Casillas
+                            Si, No y ¿Por qué?
                           </div>
                         </SelectItem>
                         <SelectItem value="texto_corto">
@@ -309,7 +309,7 @@ export function GoogleFormsSurveyEditor({
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={() => addQuestion("checkbox")} className="gap-2">
               <CheckSquare className="h-4 w-4" />
-              Casillas
+              Si, No y ¿Por qué?
             </Button>
             <Button
               type="button"

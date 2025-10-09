@@ -9,6 +9,8 @@ import { AddPonenteDialog } from "./add-ponente-dialog"
 export function PonenteUploader() {
   const [ponentes, setPonentes] = useState<any[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [editMode, setEditMode] = useState(false)
+  const [selectedPonente, setSelectedPonente] = useState<any>(null)
 
   useEffect(() => {
     loadPonentes()
@@ -32,6 +34,18 @@ export function PonenteUploader() {
     }
   }
 
+  const handleAdd = () => {
+    setEditMode(false)
+    setSelectedPonente(null)
+    setDialogOpen(true)
+  }
+
+  const handleEdit = (ponente: any) => {
+    setEditMode(true)
+    setSelectedPonente(ponente)
+    setDialogOpen(true)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -42,7 +56,7 @@ export function PonenteUploader() {
           </p>
         </div>
         <Button
-          onClick={() => setDialogOpen(true)}
+          onClick={handleAdd}
           className="gap-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700"
         >
           <UserPlus className="h-4 w-4" />
@@ -50,7 +64,13 @@ export function PonenteUploader() {
         </Button>
       </div>
 
-      <AddPonenteDialog open={dialogOpen} onOpenChange={setDialogOpen} onSuccess={loadPonentes} />
+      <AddPonenteDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSuccess={loadPonentes}
+        editMode={editMode}
+        ponenteData={selectedPonente}
+      />
 
       <Card className="border-emerald-200 bg-white/80 backdrop-blur-sm">
         <CardHeader className="border-b border-emerald-100 bg-gradient-to-r from-emerald-50 to-green-50">
@@ -130,7 +150,7 @@ export function PonenteUploader() {
                         size="icon"
                         variant="outline"
                         className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 bg-transparent"
-                        onClick={() => alert("Función de editar próximamente")}
+                        onClick={() => handleEdit(ponente)}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>

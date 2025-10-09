@@ -217,8 +217,18 @@ export function SurveyAssignmentSelector({
             </div>
           </div>
           {selectedPonente && (
-            <div className="p-3 bg-white rounded-lg border border-blue-200">
-              <p className="text-sm font-semibold text-blue-900">{selectedPonente.nombre}</p>
+            <div className="p-3 bg-white rounded-lg border border-blue-200 relative">
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => onPonenteChange("")}
+                className="absolute top-2 right-2 h-6 w-6 p-0 hover:bg-red-100 text-red-600"
+                title="Eliminar ponente seleccionado"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              <p className="text-sm font-semibold text-blue-900 pr-8">{selectedPonente.nombre}</p>
               {selectedPonente.cargo && <p className="text-xs text-blue-700">{selectedPonente.cargo}</p>}
               {selectedPonente.numero && <p className="text-xs text-blue-600">Número: {selectedPonente.numero}</p>}
               {selectedPonente.descripcion && (

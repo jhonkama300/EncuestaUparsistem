@@ -130,15 +130,18 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
     setSaving(true)
 
     try {
+      const gruposValidos = Array.isArray(grupos) ? grupos.filter((g) => g && typeof g === "object") : []
+      const estudiantesValidos = Array.isArray(estudiantesIndividuales) ? estudiantesIndividuales.filter((e) => e) : []
+
       const surveyData: any = {
         titulo,
         descripcion,
         preguntas,
         ponenteId,
         asignacion: {
-          tipo: grupos.length > 0 ? "grupos" : "todos",
-          grupos,
-          estudiantesIndividuales: [],
+          tipo: gruposValidos.length > 0 ? "grupos" : "todos",
+          grupos: gruposValidos,
+          estudiantesIndividuales: estudiantesValidos,
         },
         activa: true,
         fechaCreacion: editingSurvey?.fechaCreacion || new Date().toISOString(),

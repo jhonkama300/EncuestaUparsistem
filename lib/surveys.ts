@@ -78,7 +78,28 @@ export async function createSurvey(surveyData: SurveyData) {
 
 export async function updateSurvey(surveyId: string, surveyData: Partial<SurveyData>) {
   try {
+    if (surveyData.asignacion) {
+      surveyData.asignacion = {
+        tipo: surveyData.asignacion.tipo || "grupos",
+        grupos: Array.isArray(surveyData.asignacion.grupos)
+          ? surveyData.asignacion.grupos.filter((g) => g && typeof g === "object")
+          : [],
+        estudiantesIndividuales: Array.isArray(surveyData.asignacion.estudiantesIndividuales)
+          ? surveyData.asignacion.estudiantesIndividuales.filter((e) => e && typeof e === "string")
+          : [],
+      }
+    }
+
     const cleanedData = deepClean(surveyData)
+
+    if (cleanedData.asignacion) {
+      if (!cleanedData.asignacion.grupos) {
+        cleanedData.asignacion.grupos = []
+      }
+      if (!cleanedData.asignacion.estudiantesIndividuales) {
+        cleanedData.asignacion.estudiantesIndividuales = []
+      }
+    }
 
     const surveyRef = doc(db, "encuestas", surveyId)
     await updateDoc(surveyRef, cleanedData)
@@ -170,15 +191,18 @@ export async function getAllSurveys() {
 
 export async function getAssignedSurveys(documento: string) {
   try {
+    console.log("[v0] getAssignedSurveys - Buscando estudiante:", documento)
     const estudiantesRef = collection(db, "estudiantes")
     const qEstudiante = query(estudiantesRef, where("documento", "==", documento))
     const estudianteSnapshot = await getDocs(qEstudiante)
 
     if (estudianteSnapshot.empty) {
+      console.log("[v0] getAssignedSurveys - Estudiante no encontrado en colección estudiantes")
       return []
     }
 
     const estudiante = estudianteSnapshot.docs[0].data()
+    console.log("[v0] getAssignedSurveys - Estudiante encontrado:", estudiante)
 
     const surveysRef = collection(db, "encuestas")
     const qSurveys = query(surveysRef, where("activa", "==", true))
@@ -225,6 +249,7 @@ export async function getAssignedSurveys(documento: string) {
       }),
     )
 
+    console.log("[v0] getAssignedSurveys - Encuestas asignadas:", surveysWithStatus.length)
     return surveysWithStatus
   } catch (error) {
     console.error("[v0] Error obteniendo encuestas asignadas:", error)

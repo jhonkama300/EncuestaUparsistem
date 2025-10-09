@@ -6,17 +6,25 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { UserPlus, Loader2 } from "lucide-react"
-import { addPonente } from "@/lib/ponentes"
+import { UserPlus, Loader2, Pencil } from "lucide-react"
+import { addPonente, updatePonente } from "@/lib/ponentes"
 import type { PonenteData } from "@/lib/ponentes"
 
 interface AddPonenteDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
+  editMode?: boolean
+  ponenteData?: any
 }
 
-export function AddPonenteDialog({ open, onOpenChange, onSuccess }: AddPonenteDialogProps) {
+export function AddPonenteDialog({
+  open,
+  onOpenChange,
+  onSuccess,
+  editMode = false,
+  ponenteData,
+}: AddPonenteDialogProps) {
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     nombre: "",
@@ -26,7 +34,14 @@ export function AddPonenteDialog({ open, onOpenChange, onSuccess }: AddPonenteDi
   })
 
   useEffect(() => {
-    if (!open) {
+    if (open && editMode && ponenteData) {
+      setFormData({
+        nombre: ponenteData.nombre || "",
+        numero: ponenteData.numero || "",
+        cargo: ponenteData.cargo || "",
+        descripcion: ponenteData.descripcion || "",
+      })
+    } else if (!open) {
       setFormData({
         nombre: "",
         numero: "",
@@ -34,7 +49,7 @@ export function AddPonenteDialog({ open, onOpenChange, onSuccess }: AddPonenteDi
         descripcion: "",
       })
     }
-  }, [open])
+  }, [open, editMode, ponenteData])
 
   const handleInputChange = useCallback((field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -50,23 +65,33 @@ export function AddPonenteDialog({ open, onOpenChange, onSuccess }: AddPonenteDi
 
     setLoading(true)
     try {
-      const ponenteData: PonenteData = {
-        nombre: formData.nombre,
-        numero: formData.numero || undefined,
-        cargo: formData.cargo || undefined,
-        descripcion: formData.descripcion,
-        fechaCreacion: new Date().toISOString(),
-        activo: true,
+      if (editMode && ponenteData?.id) {
+        const updateData: Partial<PonenteData> = {
+          nombre: formData.nombre,
+          numero: formData.numero || undefined,
+          cargo: formData.cargo || undefined,
+          descripcion: formData.descripcion,
+        }
+        await updatePonente(ponenteData.id, updateData)
+        alert("Ponente actualizado exitosamente")
+      } else {
+        const newPonenteData: PonenteData = {
+          nombre: formData.nombre,
+          numero: formData.numero || undefined,
+          cargo: formData.cargo || undefined,
+          descripcion: formData.descripcion,
+          fechaCreacion: new Date().toISOString(),
+          activo: true,
+        }
+        await addPonente(newPonenteData)
+        alert("Ponente agregado exitosamente")
       }
-
-      await addPonente(ponenteData)
-      alert("Ponente agregado exitosamente")
 
       onSuccess()
       onOpenChange(false)
     } catch (error) {
-      console.error("Error agregando ponente:", error)
-      alert("Error al agregar el ponente")
+      console.error(`Error ${editMode ? "actualizando" : "agregando"} ponente:`, error)
+      alert(`Error al ${editMode ? "actualizar" : "agregar"} el ponente`)
     } finally {
       setLoading(false)
     }
@@ -77,11 +102,11 @@ export function AddPonenteDialog({ open, onOpenChange, onSuccess }: AddPonenteDi
       <DialogContent className="max-w-[95vw] sm:max-w-[90vw] lg:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="bg-gradient-to-r from-emerald-600 to-green-600 text-white -m-6 mb-0 p-6 rounded-t-lg">
           <DialogTitle className="flex items-center gap-2 text-xl">
-            <UserPlus className="h-6 w-6" />
-            Agregar Nuevo Ponente
+            {editMode ? <Pencil className="h-6 w-6" /> : <UserPlus className="h-6 w-6" />}
+            {editMode ? "Editar Ponente" : "Agregar Nuevo Ponente"}
           </DialogTitle>
           <DialogDescription className="text-emerald-50">
-            Registra un nuevo ponente con su información básica
+            {editMode ? "Actualiza la información del ponente" : "Registra un nuevo ponente con su información básica"}
           </DialogDescription>
         </DialogHeader>
 
@@ -155,12 +180,12 @@ export function AddPonenteDialog({ open, onOpenChange, onSuccess }: AddPonenteDi
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Agregando...
+                  {editMode ? "Actualizando..." : "Agregando..."}
                 </>
               ) : (
                 <>
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Agregar Ponente
+                  {editMode ? <Pencil className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                  {editMode ? "Actualizar Ponente" : "Agregar Ponente"}
                 </>
               )}
             </Button>

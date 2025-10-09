@@ -134,3 +134,18 @@ export async function deletePonente(ponenteId: string): Promise<void> {
     throw error
   }
 }
+
+export async function updatePonente(ponenteId: string, ponenteData: Partial<PonenteData>): Promise<void> {
+  try {
+    console.log("[v0] Actualizando ponente:", ponenteId)
+    const ponenteRef = doc(db, "ponentes", ponenteId)
+    await updateDoc(ponenteRef, {
+      ...ponenteData,
+      fechaActualizacion: new Date().toISOString(),
+    })
+    console.log("[v0] Ponente actualizado exitosamente:", ponenteId)
+  } catch (error) {
+    console.error("[v0] Error actualizando ponente:", error)
+    throw error
+  }
+}

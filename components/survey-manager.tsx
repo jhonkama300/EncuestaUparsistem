@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Plus, FileText, Users, TrendingUp, Edit, Trash2, Eye, Calendar, Clock, Filter } from "lucide-react"
+import { Plus, FileText, Users, TrendingUp, Edit, Trash2, Eye, Calendar, Clock, Filter, Copy } from "lucide-react"
 import { CreateSurveyDialog } from "./create-survey-dialog"
 import { SurveyResultsDialog } from "./survey-results-dialog"
 import { getAllSurveys, getSurveyStats, deleteSurvey, updateSurvey } from "@/lib/surveys"
@@ -137,6 +137,25 @@ export function SurveyManager() {
   const handleEditSurvey = (survey: any) => {
     setEditingSurvey(survey)
     setShowCreateDialog(true)
+  }
+
+  const handleCloneSurvey = (survey: any) => {
+    const clonedSurvey = {
+      ...survey,
+      titulo: `${survey.titulo} (Copia)`,
+      fechaCreacion: new Date().toISOString(),
+      activa: false,
+    }
+    delete clonedSurvey.id
+    delete clonedSurvey.respuestas
+
+    setEditingSurvey(clonedSurvey)
+    setShowCreateDialog(true)
+
+    toast({
+      title: "Encuesta clonada",
+      description: `Se ha creado una copia de "${survey.titulo}". Puedes editarla antes de guardar.`,
+    })
   }
 
   const handleViewResults = (survey: any) => {
@@ -433,6 +452,15 @@ export function SurveyManager() {
                     >
                       <Eye className="h-3 w-3" />
                       Ver Resultados
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleCloneSurvey(survey)}
+                      className="border-purple-600 text-purple-700 hover:bg-purple-50 bg-transparent gap-2"
+                    >
+                      <Copy className="h-3 w-3" />
+                      Clonar
                     </Button>
                     <Button
                       size="sm"

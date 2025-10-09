@@ -9,37 +9,54 @@ import { SurveyForm } from "./survey-form"
 
 interface StudentViewProps {
   user: UserData
+  userData: UserData
   onLogout: () => void
 }
 
-export function StudentView({ user, onLogout }: StudentViewProps) {
+export function StudentView({ user, userData, onLogout }: StudentViewProps) {
   const [surveys, setSurveys] = useState<any[]>([])
   const [selectedSurvey, setSelectedSurvey] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  console.log("[v0] StudentView montado - user:", user?.documento, "userData:", userData?.documento)
 
   useEffect(() => {
+    console.log("[v0] StudentView useEffect ejecutándose")
     loadSurveys()
   }, [user.documento])
 
   const loadSurveys = async () => {
     try {
+      console.log("[v0] Cargando encuestas para:", user.documento)
       const assignedSurveys = await getAssignedSurveys(user.documento)
+      console.log("[v0] Encuestas cargadas:", assignedSurveys.length)
       setSurveys(assignedSurveys)
     } catch (error) {
-      console.error("Error cargando encuestas:", error)
+      console.error("[v0] Error cargando encuestas:", error)
     } finally {
       setLoading(false)
     }
   }
 
   const handleSubmitSurvey = async (surveyId: string, responses: any) => {
+    if (isSubmitting) return
+
+    setIsSubmitting(true)
     try {
       await submitSurveyResponse(surveyId, user.documento, responses)
       await loadSurveys()
       setSelectedSurvey(null)
     } catch (error) {
       console.error("Error enviando respuestas:", error)
+    } finally {
+      setIsSubmitting(false)
     }
+  }
+
+  const handleLogoutClick = () => {
+    console.log("[v0] StudentView - Usuario clickeó cerrar sesión")
+    onLogout()
   }
 
   if (selectedSurvey) {
@@ -49,7 +66,8 @@ export function StudentView({ user, onLogout }: StudentViewProps) {
         user={user}
         onSubmit={(responses) => handleSubmitSurvey(selectedSurvey.id, responses)}
         onBack={() => setSelectedSurvey(null)}
-        onLogout={onLogout}
+        onLogout={handleLogoutClick}
+        isSubmitting={isSubmitting}
       />
     )
   }
@@ -64,7 +82,7 @@ export function StudentView({ user, onLogout }: StudentViewProps) {
           </div>
           <Button
             variant="outline"
-            onClick={onLogout}
+            onClick={handleLogoutClick}
             className="gap-2 border-white bg-white/10 text-white hover:bg-white/20"
           >
             <LogOut className="h-4 w-4" />

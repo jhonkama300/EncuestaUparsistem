@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,9 +21,11 @@ export function LoginView({ onLoginStudent, onLoginAdmin }: LoginViewProps) {
   const [loading, setLoading] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [checkingRole, setCheckingRole] = useState(false)
+  const [cachedUserData, setCachedUserData] = useState<UserData | null>(null)
+  const isSubmittingRef = useRef(false)
 
   const handleDocumentBlur = async () => {
-    if (!documentNumber.trim() || !/^\d+$/.test(documentNumber)) {
+    if (isSubmittingRef.current || !documentNumber.trim() || !/^\d+$/.test(documentNumber)) {
       return
     }
 
@@ -31,7 +33,12 @@ export function LoginView({ onLoginStudent, onLoginAdmin }: LoginViewProps) {
     setError("")
 
     try {
+      console.log("[v0] Buscando usuario con documento:", documentNumber)
       const userData = await getUserDataByDocument(documentNumber)
+      console.log("[v0] Usuario encontrado:", userData)
+
+      setCachedUserData(userData)
+
       if (userData && userData.rol === "admin") {
         setIsAdmin(true)
       } else {
@@ -39,6 +46,7 @@ export function LoginView({ onLoginStudent, onLoginAdmin }: LoginViewProps) {
       }
     } catch (err) {
       console.error("Error al verificar rol:", err)
+      setCachedUserData(null)
     } finally {
       setCheckingRole(false)
     }
@@ -46,48 +54,82 @@ export function LoginView({ onLoginStudent, onLoginAdmin }: LoginViewProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (isSubmittingRef.current || loading) {
+      console.log("[v0] Envío bloqueado - ya está en proceso")
+      return
+    }
+
+    isSubmittingRef.current = true
     setError("")
 
     if (!documentNumber.trim()) {
       setError("Por favor ingresa tu número de documento")
+      isSubmittingRef.current = false
       return
     }
 
     if (!/^\d+$/.test(documentNumber)) {
       setError("El número de documento solo debe contener dígitos")
+      isSubmittingRef.current = false
+      return
+    }
+
+    if (isAdmin && !password.trim()) {
+      setError("Por favor ingresa tu contraseña")
+      isSubmittingRef.current = false
       return
     }
 
     setLoading(true)
+    console.log("[v0] Iniciando login para documento:", documentNumber)
+
     try {
-      const userData = await getUserDataByDocument(documentNumber)
+      let userData = cachedUserData
+
+      if (!userData || userData.documento !== documentNumber) {
+        console.log("[v0] Buscando usuario (no hay caché):", documentNumber)
+        userData = await getUserDataByDocument(documentNumber)
+        setCachedUserData(userData)
+      } else {
+        console.log("[v0] Usando datos en caché para:", documentNumber)
+      }
 
       if (!userData) {
-        throw new Error("Número de documento no registrado en la base de datos")
+        setError("Número de documento no registrado en la base de datos")
+        setLoading(false)
+        isSubmittingRef.current = false
+        return
       }
 
-      if (userData.rol === "admin") {
-        if (!isAdmin) {
-          setIsAdmin(true)
-          setLoading(false)
-          setError("Por favor ingresa tu contraseña de administrador")
-          return
-        }
-        // Admin login requires password
-        if (!password.trim()) {
-          setError("Por favor ingresa tu contraseña")
-          setLoading(false)
-          return
-        }
-        await onLoginAdmin(documentNumber, password)
-      } else {
-        // Student login doesn't require password
-        await onLoginStudent(documentNumber)
+      if (userData.rol === "admin" && !isAdmin) {
+        setIsAdmin(true)
+        setError("Por favor ingresa tu contraseña de administrador")
+        setLoading(false)
+        isSubmittingRef.current = false
+        return
       }
+
+      console.log("[v0] Procesando login como:", userData.rol)
+
+      if (userData.rol === "admin") {
+        console.log("[v0] Llamando onLoginAdmin")
+        await onLoginAdmin(documentNumber, password)
+        console.log("[v0] onLoginAdmin completado")
+      } else {
+        console.log("[v0] Llamando onLoginStudent")
+        await onLoginStudent(documentNumber)
+        console.log("[v0] onLoginStudent completado")
+      }
+
+      console.log("[v0] Login exitoso - manteniendo estado de carga hasta cambio de vista")
+      // mantener el botón deshabilitado hasta que el componente se desmonte
+      // cuando cambie la vista al StudentView o AdminView
     } catch (err: any) {
+      console.error("[v0] Error en login:", err)
       setError(err.message || "Error al iniciar sesión")
-    } finally {
       setLoading(false)
+      isSubmittingRef.current = false
     }
   }
 
@@ -119,6 +161,7 @@ export function LoginView({ onLoginStudent, onLoginAdmin }: LoginViewProps) {
                   setDocumentNumber(e.target.value)
                   setIsAdmin(false)
                   setPassword("")
+                  setCachedUserData(null)
                 }}
                 onBlur={handleDocumentBlur}
                 disabled={loading || checkingRole}

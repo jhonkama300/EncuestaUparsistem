@@ -185,7 +185,6 @@ export function PonenteUploader() {
                         <TableHead>Número</TableHead>
                         <TableHead>Cargo</TableHead>
                         <TableHead>Descripción</TableHead>
-                        <TableHead>Detalles</TableHead>
                         <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -196,25 +195,6 @@ export function PonenteUploader() {
                           <TableCell>{ponente.numero || "-"}</TableCell>
                           <TableCell>{ponente.cargo || "-"}</TableCell>
                           <TableCell className="max-w-xs truncate">{ponente.descripcion}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {ponente.jornada && (
-                                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                                  {ponente.jornada}
-                                </span>
-                              )}
-                              {ponente.programa && (
-                                <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                                  {ponente.programa}
-                                </span>
-                              )}
-                              {ponente.grupo && (
-                                <span className="rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-700">
-                                  G{ponente.grupo}
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
                           <TableCell className="text-right">
                             <div className="flex gap-2 justify-end">
                               <Button

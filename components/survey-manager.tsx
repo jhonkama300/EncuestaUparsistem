@@ -12,6 +12,7 @@ import { SurveyResultsDialog } from "./survey-results-dialog"
 import { getAllSurveys, getSurveyStats, deleteSurvey, updateSurvey } from "@/lib/surveys"
 import { useToast } from "@/hooks/use-toast"
 import { getUniqueStudentValues } from "@/lib/students"
+import { formatDateForDisplay, formatTimeForDisplay } from "@/lib/date-utils"
 
 export function SurveyManager() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -77,17 +78,12 @@ export function SurveyManager() {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return ""
-    const date = new Date(dateString)
-    return date.toLocaleDateString("es-ES", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
+    return formatDateForDisplay(dateString)
   }
 
   const formatTime = (timeString: string) => {
     if (!timeString) return ""
-    return timeString
+    return formatTimeForDisplay(timeString)
   }
 
   const handleToggleSurvey = async (surveyId: string, currentStatus: boolean, surveyTitle: string) => {

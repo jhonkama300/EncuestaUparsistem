@@ -212,7 +212,6 @@ export async function getAssignedSurveys(documento: string) {
       const survey = doc.data()
       const asignacion = survey.asignacion || {}
 
-      // Verificar si está en estudiantes individuales
       if (asignacion.estudiantesIndividuales?.includes(documento)) {
         return true
       }
@@ -232,8 +231,11 @@ export async function getAssignedSurveys(documento: string) {
     })
 
     const respuestasRef = collection(db, "respuestas")
+    const ponentesRef = collection(db, "ponentes")
+
     const surveysWithStatus = await Promise.all(
       assignedSurveys.map(async (surveyDoc) => {
+        const surveyData = surveyDoc.data()
         const qRespuesta = query(
           respuestasRef,
           where("encuestaId", "==", surveyDoc.id),
@@ -241,10 +243,20 @@ export async function getAssignedSurveys(documento: string) {
         )
         const respuestaSnapshot = await getDocs(qRespuesta)
 
+        let ponenteNombre = null
+        if (surveyData.ponenteId) {
+          const qPonente = query(ponentesRef, where("__name__", "==", surveyData.ponenteId))
+          const ponenteSnapshot = await getDocs(qPonente)
+          if (!ponenteSnapshot.empty) {
+            ponenteNombre = ponenteSnapshot.docs[0].data().nombre
+          }
+        }
+
         return {
           id: surveyDoc.id,
-          ...surveyDoc.data(),
+          ...surveyData,
           completada: !respuestaSnapshot.empty,
+          ponenteNombre,
         }
       }),
     )

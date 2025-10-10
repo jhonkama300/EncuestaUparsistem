@@ -7,13 +7,26 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Users, Trash2, Search, Eye, X } from "lucide-react"
+import {
+  Upload,
+  FileSpreadsheet,
+  CheckCircle2,
+  AlertCircle,
+  Users,
+  Trash2,
+  Search,
+  Eye,
+  X,
+  Database,
+} from "lucide-react"
 import {
   uploadStudentsFromExcel,
   getAllStudents,
   resetStudentsByPrograma,
   resetStudentsByGrupo,
   resetAllStudents,
+  deleteStudentByDocumento,
+  searchStudentByName,
 } from "@/lib/students"
 import {
   AlertDialog,
@@ -76,6 +89,10 @@ export function StudentUploader() {
 
   const [resetPrograma, setResetPrograma] = useState("")
   const [resetGrupo, setResetGrupo] = useState("")
+
+  const [deleteSearchTerm, setDeleteSearchTerm] = useState("")
+  const [deleteSearchResults, setDeleteSearchResults] = useState<any[]>([])
+  const [isSearchingToDelete, setIsSearchingToDelete] = useState(false)
 
   useEffect(() => {
     loadStudents()
@@ -143,6 +160,8 @@ export function StudentUploader() {
     setFilterPeriodo("")
     setFilterGrupo("")
     setSearchTerm("")
+    setDeleteSearchTerm("") // Limpiar también el término de búsqueda para eliminar
+    setDeleteSearchResults([]) // Limpiar resultados de búsqueda para eliminar
   }
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -286,6 +305,45 @@ export function StudentUploader() {
     }
   }
 
+  const handleSearchStudentToDelete = async () => {
+    if (!deleteSearchTerm.trim()) {
+      setDeleteSearchResults([])
+      return
+    }
+
+    setIsSearchingToDelete(true)
+    try {
+      const results = await searchStudentByName(deleteSearchTerm)
+      setDeleteSearchResults(results)
+    } catch (error) {
+      console.error("Error buscando estudiante:", error)
+      alert("Error al buscar estudiante")
+    } finally {
+      setIsSearchingToDelete(false)
+    }
+  }
+
+  const handleDeleteStudent = async (documento: string, nombre: string) => {
+    if (!confirm(`¿Estás seguro de eliminar al estudiante ${nombre} (${documento})?`)) {
+      return
+    }
+
+    try {
+      const success = await deleteStudentByDocumento(documento)
+      if (success) {
+        alert(`Estudiante ${nombre} eliminado exitosamente`)
+        setDeleteSearchTerm("")
+        setDeleteSearchResults([])
+        await loadStudents()
+      } else {
+        alert("No se encontró el estudiante")
+      }
+    } catch (error) {
+      console.error("Error eliminando estudiante:", error)
+      alert("Error al eliminar estudiante")
+    }
+  }
+
   const countByJornada = students.reduce(
     (acc, student) => {
       acc[student.jornada] = (acc[student.jornada] || 0) + 1
@@ -333,552 +391,664 @@ export function StudentUploader() {
         <p className="text-gray-600">Carga, visualiza y administra los estudiantes registrados</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card
-          className="border-blue-200 bg-blue-50 cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => clearAllFilters()}
-        >
-          <CardHeader className="pb-3">
-            <CardTitle className="text-blue-800 text-sm font-medium">Total de Estudiantes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-blue-900">{students.length}</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-purple-200 bg-purple-50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-purple-800 text-sm font-medium">Por Jornada</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {Object.entries(countByJornada)
-              .sort(([a], [b]) => a.localeCompare(b))
-              .map(([jornada, count]) => (
-                <div
-                  key={jornada}
-                  className="flex items-center justify-between cursor-pointer hover:bg-purple-100 p-2 rounded transition-colors"
-                  onClick={() => {
-                    clearAllFilters()
-                    setFilterJornada(jornada)
-                  }}
-                >
-                  <span className="text-sm text-purple-900">{jornada}</span>
-                  <Badge variant="secondary" className="bg-purple-200 text-purple-900">
-                    {count}
-                  </Badge>
-                </div>
-              ))}
-          </CardContent>
-        </Card>
-
-        <Card className="border-green-200 bg-green-50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-green-800 text-sm font-medium">Por Programa</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 max-h-48 overflow-y-auto">
-            {Object.entries(countByPrograma)
-              .sort(([a], [b]) => a.localeCompare(b))
-              .map(([programa, count]) => (
-                <div
-                  key={programa}
-                  className="flex items-center justify-between cursor-pointer hover:bg-green-100 p-2 rounded transition-colors"
-                  onClick={() => {
-                    clearAllFilters()
-                    setFilterPrograma(programa)
-                  }}
-                >
-                  <span className="text-sm text-green-900">{programa}</span>
-                  <Badge variant="secondary" className="bg-green-200 text-green-900">
-                    {count}
-                  </Badge>
-                </div>
-              ))}
-          </CardContent>
-        </Card>
-
-        <Card className="border-orange-200 bg-orange-50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-orange-800 text-sm font-medium">Por Nivel</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {Object.entries(countByNivel)
-              .sort(([a], [b]) => a.localeCompare(b))
-              .map(([nivel, count]) => (
-                <div
-                  key={nivel}
-                  className="flex items-center justify-between cursor-pointer hover:bg-orange-100 p-2 rounded transition-colors"
-                  onClick={() => {
-                    clearAllFilters()
-                    setFilterNivel(nivel)
-                  }}
-                >
-                  <span className="text-sm text-orange-900">Nivel {nivel}</span>
-                  <Badge variant="secondary" className="bg-orange-200 text-orange-900">
-                    {count}
-                  </Badge>
-                </div>
-              ))}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Upload Section */}
-      <Card className="border-emerald-200">
+      <Card className="border-emerald-200 bg-emerald-50/30">
         <CardHeader>
-          <CardTitle className="text-emerald-800">Subir Archivo Excel</CardTitle>
-          <CardDescription>
-            El archivo debe contener: Primer nombre, Segundo nombre, Primer apellido, Segundo apellido, Número de
-            identificación, Jornada, Programa, Grupo, Período, Nivel
-          </CardDescription>
+          <CardTitle className="text-emerald-800 flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Gestión de Estudiantes
+          </CardTitle>
+          <CardDescription>Visualiza, busca y filtra estudiantes registrados</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <label className="flex-1">
-              <input
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={handleFileChange}
-                className="hidden"
-                disabled={uploading}
-              />
-              <div className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-dashed border-emerald-300 bg-emerald-50 p-4 transition-colors hover:border-emerald-400 hover:bg-emerald-100">
-                <FileSpreadsheet className="h-6 w-6 text-emerald-600" />
-                <div>
-                  <p className="font-medium text-emerald-800 text-sm">
-                    {file ? file.name : "Seleccionar archivo Excel"}
-                  </p>
-                  <p className="text-xs text-gray-600">Formatos: .xlsx, .xls</p>
-                </div>
-              </div>
-            </label>
+        <CardContent className="space-y-6">
+          {/* Estadísticas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card
+              className="border-blue-200 bg-blue-50 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => clearAllFilters()}
+            >
+              <CardHeader className="pb-3">
+                <CardTitle className="text-blue-800 text-sm font-medium">Total de Estudiantes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-blue-900">{students.length}</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-purple-200 bg-purple-50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-purple-800 text-sm font-medium">Por Jornada</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {Object.entries(countByJornada)
+                  .sort(([a], [b]) => a.localeCompare(b))
+                  .map(([jornada, count]) => (
+                    <div
+                      key={jornada}
+                      className="flex items-center justify-between cursor-pointer hover:bg-purple-100 p-2 rounded transition-colors"
+                      onClick={() => {
+                        clearAllFilters()
+                        setFilterJornada(jornada)
+                      }}
+                    >
+                      <span className="text-sm text-purple-900">{jornada}</span>
+                      <Badge variant="secondary" className="bg-purple-200 text-purple-900">
+                        {count}
+                      </Badge>
+                    </div>
+                  ))}
+              </CardContent>
+            </Card>
+
+            <Card className="border-green-200 bg-green-50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-green-800 text-sm font-medium">Por Programa</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 max-h-48 overflow-y-auto">
+                {Object.entries(countByPrograma)
+                  .sort(([a], [b]) => a.localeCompare(b))
+                  .map(([programa, count]) => (
+                    <div
+                      key={programa}
+                      className="flex items-center justify-between cursor-pointer hover:bg-green-100 p-2 rounded transition-colors"
+                      onClick={() => {
+                        clearAllFilters()
+                        setFilterPrograma(programa)
+                      }}
+                    >
+                      <span className="text-sm text-green-900">{programa}</span>
+                      <Badge variant="secondary" className="bg-green-200 text-green-900">
+                        {count}
+                      </Badge>
+                    </div>
+                  ))}
+              </CardContent>
+            </Card>
+
+            <Card className="border-orange-200 bg-orange-50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-orange-800 text-sm font-medium">Por Nivel</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {Object.entries(countByNivel)
+                  .sort(([a], [b]) => a.localeCompare(b))
+                  .map(([nivel, count]) => (
+                    <div
+                      key={nivel}
+                      className="flex items-center justify-between cursor-pointer hover:bg-orange-100 p-2 rounded transition-colors"
+                      onClick={() => {
+                        clearAllFilters()
+                        setFilterNivel(nivel)
+                      }}
+                    >
+                      <span className="text-sm text-orange-900">Nivel {nivel}</span>
+                      <Badge variant="secondary" className="bg-orange-200 text-orange-900">
+                        {count}
+                      </Badge>
+                    </div>
+                  ))}
+              </CardContent>
+            </Card>
           </div>
 
-          {showPreview && (
-            <Card className="border-blue-200 bg-blue-50">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Eye className="h-5 w-5 text-blue-600" />
-                    <CardTitle className="text-blue-800 text-base">Vista Previa del Archivo</CardTitle>
+          {/* Filtros y Tabla */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              <Select value={filterJornada} onValueChange={setFilterJornada}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Jornada" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todas las jornadas</SelectItem>
+                  {uniqueJornadas.map((jornada) => (
+                    <SelectItem key={jornada} value={jornada}>
+                      {jornada}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterPrograma} onValueChange={setFilterPrograma}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Programa" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos los programas</SelectItem>
+                  {uniqueProgramasFilter.map((programa) => (
+                    <SelectItem key={programa} value={programa}>
+                      {programa}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterNivel} onValueChange={setFilterNivel}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Nivel" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos los niveles</SelectItem>
+                  {uniqueNiveles.map((nivel) => (
+                    <SelectItem key={nivel} value={nivel}>
+                      {nivel}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterPeriodo} onValueChange={setFilterPeriodo}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Período" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos los períodos</SelectItem>
+                  {uniquePeriodos.map((periodo) => (
+                    <SelectItem key={periodo} value={periodo}>
+                      {periodo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterGrupo} onValueChange={setFilterGrupo}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Grupo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos los grupos</SelectItem>
+                  {uniqueGruposFilter.map((grupo) => (
+                    <SelectItem key={grupo} value={grupo}>
+                      {grupo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Buscar por documento, nombre, programa o grupo..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1"
+              />
+              {hasActiveFilters && (
+                <Button variant="outline" size="sm" onClick={clearAllFilters}>
+                  <X className="h-4 w-4 mr-1" />
+                  Limpiar
+                </Button>
+              )}
+            </div>
+
+            {loading ? (
+              <p className="text-center text-gray-600 py-8">Cargando estudiantes...</p>
+            ) : filteredStudents.length === 0 ? (
+              <p className="text-center text-gray-600 py-8">No se encontraron estudiantes</p>
+            ) : (
+              <>
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="max-h-96 overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-emerald-50 sticky top-0">
+                        <tr>
+                          <th className="text-left p-2 font-semibold text-emerald-800">Documento</th>
+                          <th className="text-left p-2 font-semibold text-emerald-800">Nombre</th>
+                          <th className="text-left p-2 font-semibold text-emerald-800">Programa</th>
+                          <th className="text-left p-2 font-semibold text-emerald-800">Grupo</th>
+                          <th className="text-left p-2 font-semibold text-emerald-800">Nivel</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedStudents.map((student, index) => (
+                          <tr key={student.id || index} className="border-t hover:bg-gray-50">
+                            <td className="p-2">{student.documento}</td>
+                            <td className="p-2">
+                              {`${student.primerNombre} ${student.segundoNombre || ""} ${student.primerApellido} ${student.segundoApellido || ""}`.trim()}
+                            </td>
+                            <td className="p-2">{student.programa}</td>
+                            <td className="p-2">{student.grupo}</td>
+                            <td className="p-2">{student.nivel}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setShowPreview(false)
-                      setFile(null)
-                      setPreviewData([])
-                      setPreviewErrors([])
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {previewErrors.length > 0 && (
-                  <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-3">
-                    <p className="mb-2 font-semibold text-yellow-800 text-sm">
-                      Advertencias encontradas ({previewErrors.length}):
+
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-4">
+                    <p className="text-sm text-gray-600">
+                      Mostrando {startIndex + 1} - {Math.min(endIndex, filteredStudents.length)} de{" "}
+                      {filteredStudents.length} estudiantes
                     </p>
-                    <ul className="list-inside list-disc space-y-1 text-xs text-yellow-700 max-h-32 overflow-y-auto">
-                      {previewErrors.slice(0, 5).map((error, index) => (
-                        <li key={index}>{error}</li>
-                      ))}
-                      {previewErrors.length > 5 && <li>... y {previewErrors.length - 5} advertencias más</li>}
-                    </ul>
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                            className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                          if (
+                            page === 1 ||
+                            page === totalPages ||
+                            (page >= currentPage - 1 && page <= currentPage + 1)
+                          ) {
+                            return (
+                              <PaginationItem key={page}>
+                                <PaginationLink
+                                  onClick={() => setCurrentPage(page)}
+                                  isActive={currentPage === page}
+                                  className="cursor-pointer"
+                                >
+                                  {page}
+                                </PaginationLink>
+                              </PaginationItem>
+                            )
+                          } else if (page === currentPage - 2 || page === currentPage + 2) {
+                            return (
+                              <PaginationItem key={page}>
+                                <PaginationEllipsis />
+                              </PaginationItem>
+                            )
+                          }
+                          return null
+                        })}
+
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                            className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
                   </div>
                 )}
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-                {previewData.length > 0 && (
-                  <div>
-                    <p className="mb-2 font-medium text-blue-800 text-sm">Primeros {previewData.length} registros:</p>
-                    <div className="border rounded-lg overflow-hidden bg-white">
-                      <div className="max-h-64 overflow-auto">
-                        <table className="w-full text-xs">
-                          <thead className="bg-blue-100 sticky top-0">
-                            <tr>
-                              <th className="text-left p-2 font-semibold text-blue-900">Documento</th>
-                              <th className="text-left p-2 font-semibold text-blue-900">Nombre</th>
-                              <th className="text-left p-2 font-semibold text-blue-900">Programa</th>
-                              <th className="text-left p-2 font-semibold text-blue-900">Grupo</th>
-                              <th className="text-left p-2 font-semibold text-blue-900">Nivel</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {previewData.map((student, index) => (
-                              <tr key={index} className="border-t hover:bg-gray-50">
-                                <td className="p-2">{student.documento}</td>
-                                <td className="p-2">
-                                  {`${student.primerNombre} ${student.segundoNombre || ""} ${student.primerApellido} ${student.segundoApellido || ""}`.trim()}
-                                </td>
-                                <td className="p-2">{student.programa}</td>
-                                <td className="p-2">{student.grupo}</td>
-                                <td className="p-2">{student.nivel}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+      <Card className="border-blue-200 bg-blue-50/30">
+        <CardHeader>
+          <CardTitle className="text-blue-800 flex items-center gap-2">
+            <Database className="h-5 w-5" />
+            Base de Datos
+          </CardTitle>
+          <CardDescription>Importa, elimina y gestiona la base de datos de estudiantes</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Importar Excel */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-blue-900">Importar desde Excel</h3>
+            <Card className="border-emerald-200">
+              <CardHeader>
+                <CardTitle className="text-emerald-800 text-base">Subir Archivo Excel</CardTitle>
+                <CardDescription>
+                  El archivo debe contener: Primer nombre, Segundo nombre, Primer apellido, Segundo apellido, Número de
+                  identificación, Jornada, Programa, Grupo, Período, Nivel
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <label className="flex-1">
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={handleFileChange}
+                      className="hidden"
+                      disabled={uploading}
+                    />
+                    <div className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-dashed border-emerald-300 bg-emerald-50 p-4 transition-colors hover:border-emerald-400 hover:bg-emerald-100">
+                      <FileSpreadsheet className="h-6 w-6 text-emerald-600" />
+                      <div>
+                        <p className="font-medium text-emerald-800 text-sm">
+                          {file ? file.name : "Seleccionar archivo Excel"}
+                        </p>
+                        <p className="text-xs text-gray-600">Formatos: .xlsx, .xls</p>
                       </div>
+                    </div>
+                  </label>
+                </div>
+
+                {showPreview && (
+                  <Card className="border-blue-200 bg-blue-50">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Eye className="h-5 w-5 text-blue-600" />
+                          <CardTitle className="text-blue-800 text-base">Vista Previa del Archivo</CardTitle>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setShowPreview(false)
+                            setFile(null)
+                            setPreviewData([])
+                            setPreviewErrors([])
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {previewErrors.length > 0 && (
+                        <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-3">
+                          <p className="mb-2 font-semibold text-yellow-800 text-sm">
+                            Advertencias encontradas ({previewErrors.length}):
+                          </p>
+                          <ul className="list-inside list-disc space-y-1 text-xs text-yellow-700 max-h-32 overflow-y-auto">
+                            {previewErrors.slice(0, 5).map((error, index) => (
+                              <li key={index}>{error}</li>
+                            ))}
+                            {previewErrors.length > 5 && <li>... y {previewErrors.length - 5} advertencias más</li>}
+                          </ul>
+                        </div>
+                      )}
+
+                      {previewData.length > 0 && (
+                        <div>
+                          <p className="mb-2 font-medium text-blue-800 text-sm">
+                            Primeros {previewData.length} registros:
+                          </p>
+                          <div className="border rounded-lg overflow-hidden bg-white">
+                            <div className="max-h-64 overflow-auto">
+                              <table className="w-full text-xs">
+                                <thead className="bg-blue-100 sticky top-0">
+                                  <tr>
+                                    <th className="text-left p-2 font-semibold text-blue-900">Documento</th>
+                                    <th className="text-left p-2 font-semibold text-blue-900">Nombre</th>
+                                    <th className="text-left p-2 font-semibold text-blue-900">Programa</th>
+                                    <th className="text-left p-2 font-semibold text-blue-900">Grupo</th>
+                                    <th className="text-left p-2 font-semibold text-blue-900">Nivel</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {previewData.map((student, index) => (
+                                    <tr key={index} className="border-t hover:bg-gray-50">
+                                      <td className="p-2">{student.documento}</td>
+                                      <td className="p-2">
+                                        {`${student.primerNombre} ${student.segundoNombre || ""} ${student.primerApellido} ${student.segundoApellido || ""}`.trim()}
+                                      </td>
+                                      <td className="p-2">{student.programa}</td>
+                                      <td className="p-2">{student.grupo}</td>
+                                      <td className="p-2">{student.nivel}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                <Button
+                  onClick={handleUpload}
+                  disabled={!file || uploading}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  {uploading ? "Subiendo..." : "Subir Estudiantes"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {result && (
+              <Card
+                className={result.errors.length > 0 ? "border-yellow-200 bg-yellow-50" : "border-green-200 bg-green-50"}
+              >
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    {result.errors.length > 0 ? (
+                      <AlertCircle className="h-5 w-5 text-yellow-600" />
+                    ) : (
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    )}
+                    <CardTitle
+                      className={result.errors.length > 0 ? "text-yellow-800 text-base" : "text-green-800 text-base"}
+                    >
+                      Resultado de la Carga
+                    </CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="mb-2 font-medium text-sm">{result.success} estudiante(s) cargado(s) exitosamente</p>
+                  {result.errors.length > 0 && (
+                    <div className="mt-4">
+                      <p className="mb-2 font-medium text-yellow-800 text-sm">Errores encontrados:</p>
+                      <ul className="list-inside list-disc space-y-1 text-xs text-yellow-700 max-h-40 overflow-y-auto">
+                        {result.errors.slice(0, 10).map((error, index) => (
+                          <li key={index}>{error}</li>
+                        ))}
+                        {result.errors.length > 10 && <li>... y {result.errors.length - 10} errores más</li>}
+                      </ul>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="font-semibold text-red-900">Eliminar Estudiante Individual</h3>
+            <Card className="border-red-200 bg-red-50">
+              <CardHeader>
+                <CardTitle className="text-red-800 text-base">Buscar y Eliminar Estudiante</CardTitle>
+                <CardDescription className="text-red-700">
+                  Busca un estudiante por nombre o documento para eliminarlo de la base de datos
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    placeholder="Buscar por nombre o documento..."
+                    value={deleteSearchTerm}
+                    onChange={(e) => setDeleteSearchTerm(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleSearchStudentToDelete()
+                      }
+                    }}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleSearchStudentToDelete}
+                    disabled={!deleteSearchTerm.trim() || isSearchingToDelete}
+                    variant="outline"
+                  >
+                    <Search className="h-4 w-4 mr-2" />
+                    {isSearchingToDelete ? "Buscando..." : "Buscar"}
+                  </Button>
+                </div>
+
+                {deleteSearchResults.length > 0 && (
+                  <div className="border rounded-lg overflow-hidden bg-white">
+                    <div className="max-h-64 overflow-y-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-red-100 sticky top-0">
+                          <tr>
+                            <th className="text-left p-2 font-semibold text-red-900">Documento</th>
+                            <th className="text-left p-2 font-semibold text-red-900">Nombre</th>
+                            <th className="text-left p-2 font-semibold text-red-900">Programa</th>
+                            <th className="text-left p-2 font-semibold text-red-900">Grupo</th>
+                            <th className="text-center p-2 font-semibold text-red-900">Acción</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {deleteSearchResults.map((student, index) => (
+                            <tr key={student.id || index} className="border-t hover:bg-gray-50">
+                              <td className="p-2">{student.documento}</td>
+                              <td className="p-2">
+                                {`${student.primerNombre} ${student.segundoNombre || ""} ${student.primerApellido} ${student.segundoApellido || ""}`.trim()}
+                              </td>
+                              <td className="p-2">{student.programa}</td>
+                              <td className="p-2">{student.grupo}</td>
+                              <td className="p-2 text-center">
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleDeleteStudent(
+                                      student.documento,
+                                      `${student.primerNombre} ${student.primerApellido}`,
+                                    )
+                                  }
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  Eliminar
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 )}
+
+                {deleteSearchTerm && deleteSearchResults.length === 0 && !isSearchingToDelete && (
+                  <p className="text-center text-gray-600 py-4">No se encontraron estudiantes</p>
+                )}
               </CardContent>
             </Card>
-          )}
-
-          <Button
-            onClick={handleUpload}
-            disabled={!file || uploading}
-            className="w-full bg-emerald-600 hover:bg-emerald-700"
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            {uploading ? "Subiendo..." : "Subir Estudiantes"}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {result && (
-        <Card className={result.errors.length > 0 ? "border-yellow-200 bg-yellow-50" : "border-green-200 bg-green-50"}>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              {result.errors.length > 0 ? (
-                <AlertCircle className="h-5 w-5 text-yellow-600" />
-              ) : (
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-              )}
-              <CardTitle
-                className={result.errors.length > 0 ? "text-yellow-800 text-base" : "text-green-800 text-base"}
-              >
-                Resultado de la Carga
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-2 font-medium text-sm">{result.success} estudiante(s) cargado(s) exitosamente</p>
-            {result.errors.length > 0 && (
-              <div className="mt-4">
-                <p className="mb-2 font-medium text-yellow-800 text-sm">Errores encontrados:</p>
-                <ul className="list-inside list-disc space-y-1 text-xs text-yellow-700 max-h-40 overflow-y-auto">
-                  {result.errors.slice(0, 10).map((error, index) => (
-                    <li key={index}>{error}</li>
-                  ))}
-                  {result.errors.length > 10 && <li>... y {result.errors.length - 10} errores más</li>}
-                </ul>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      <Card className="border-emerald-200">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-emerald-800 flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Estudiantes Registrados ({filteredStudents.length})
-              </CardTitle>
-              <CardDescription>Visualiza y busca estudiantes en la base de datos</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
-            <Select value={filterJornada} onValueChange={setFilterJornada}>
-              <SelectTrigger>
-                <SelectValue placeholder="Jornada" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">Todas las jornadas</SelectItem>
-                {uniqueJornadas.map((jornada) => (
-                  <SelectItem key={jornada} value={jornada}>
-                    {jornada}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={filterPrograma} onValueChange={setFilterPrograma}>
-              <SelectTrigger>
-                <SelectValue placeholder="Programa" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">Todos los programas</SelectItem>
-                {uniqueProgramasFilter.map((programa) => (
-                  <SelectItem key={programa} value={programa}>
-                    {programa}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={filterNivel} onValueChange={setFilterNivel}>
-              <SelectTrigger>
-                <SelectValue placeholder="Nivel" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">Todos los niveles</SelectItem>
-                {uniqueNiveles.map((nivel) => (
-                  <SelectItem key={nivel} value={nivel}>
-                    {nivel}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={filterPeriodo} onValueChange={setFilterPeriodo}>
-              <SelectTrigger>
-                <SelectValue placeholder="Período" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">Todos los períodos</SelectItem>
-                {uniquePeriodos.map((periodo) => (
-                  <SelectItem key={periodo} value={periodo}>
-                    {periodo}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={filterGrupo} onValueChange={setFilterGrupo}>
-              <SelectTrigger>
-                <SelectValue placeholder="Grupo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">Todos los grupos</SelectItem>
-                {uniqueGruposFilter.map((grupo) => (
-                  <SelectItem key={grupo} value={grupo}>
-                    {grupo}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Search className="h-4 w-4 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Buscar por documento, nombre, programa o grupo..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1"
-            />
-            {hasActiveFilters && (
-              <Button variant="outline" size="sm" onClick={clearAllFilters}>
-                <X className="h-4 w-4 mr-1" />
-                Limpiar
-              </Button>
-            )}
-          </div>
+          {/* Resetear Base de Datos */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-red-900">Resetear Base de Datos</h3>
+            <Card className="border-red-200 bg-red-50">
+              <CardHeader>
+                <CardTitle className="text-red-800 text-base flex items-center gap-2">
+                  <Trash2 className="h-5 w-5" />
+                  Eliminar Grupos de Estudiantes
+                </CardTitle>
+                <CardDescription className="text-red-700">
+                  Elimina estudiantes por programa, grupo o toda la base de datos. Esta acción no se puede deshacer.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Resetear por Programa</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="text"
+                        placeholder="Seleccionar programa..."
+                        value={resetPrograma}
+                        onChange={(e) => setResetPrograma(e.target.value)}
+                        list="reset-programas-list"
+                        className="flex-1"
+                      />
+                      <datalist id="reset-programas-list">
+                        {uniqueProgramas.map((p: string) => (
+                          <option key={p} value={p} />
+                        ))}
+                      </datalist>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" disabled={!resetPrograma}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esto eliminará todos los estudiantes del programa "{resetPrograma}". Esta acción no se
+                              puede deshacer.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleResetByPrograma} className="bg-red-600 hover:bg-red-700">
+                              Eliminar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
 
-          {loading ? (
-            <p className="text-center text-gray-600 py-8">Cargando estudiantes...</p>
-          ) : filteredStudents.length === 0 ? (
-            <p className="text-center text-gray-600 py-8">No se encontraron estudiantes</p>
-          ) : (
-            <>
-              <div className="border rounded-lg overflow-hidden">
-                <div className="max-h-96 overflow-y-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-emerald-50 sticky top-0">
-                      <tr>
-                        <th className="text-left p-2 font-semibold text-emerald-800">Documento</th>
-                        <th className="text-left p-2 font-semibold text-emerald-800">Nombre</th>
-                        <th className="text-left p-2 font-semibold text-emerald-800">Programa</th>
-                        <th className="text-left p-2 font-semibold text-emerald-800">Grupo</th>
-                        <th className="text-left p-2 font-semibold text-emerald-800">Nivel</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paginatedStudents.map((student, index) => (
-                        <tr key={student.id || index} className="border-t hover:bg-gray-50">
-                          <td className="p-2">{student.documento}</td>
-                          <td className="p-2">
-                            {`${student.primerNombre} ${student.segundoNombre || ""} ${student.primerApellido} ${student.segundoApellido || ""}`.trim()}
-                          </td>
-                          <td className="p-2">{student.programa}</td>
-                          <td className="p-2">{student.grupo}</td>
-                          <td className="p-2">{student.nivel}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div className="space-y-2">
+                    <Label>Resetear por Grupo</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="text"
+                        placeholder="Seleccionar grupo..."
+                        value={resetGrupo}
+                        onChange={(e) => setResetGrupo(e.target.value)}
+                        list="reset-grupos-list"
+                        className="flex-1"
+                      />
+                      <datalist id="reset-grupos-list">
+                        {uniqueGrupos.map((g: string) => (
+                          <option key={g} value={g} />
+                        ))}
+                      </datalist>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" disabled={!resetGrupo}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esto eliminará todos los estudiantes del grupo "{resetGrupo}". Esta acción no se puede
+                              deshacer.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleResetByGrupo} className="bg-red-600 hover:bg-red-700">
+                              Eliminar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-4">
-                  <p className="text-sm text-gray-600">
-                    Mostrando {startIndex + 1} - {Math.min(endIndex, filteredStudents.length)} de{" "}
-                    {filteredStudents.length} estudiantes
-                  </p>
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious
-                          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                        />
-                      </PaginationItem>
-
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                        if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
-                          return (
-                            <PaginationItem key={page}>
-                              <PaginationLink
-                                onClick={() => setCurrentPage(page)}
-                                isActive={currentPage === page}
-                                className="cursor-pointer"
-                              >
-                                {page}
-                              </PaginationLink>
-                            </PaginationItem>
-                          )
-                        } else if (page === currentPage - 2 || page === currentPage + 2) {
-                          return (
-                            <PaginationItem key={page}>
-                              <PaginationEllipsis />
-                            </PaginationItem>
-                          )
-                        }
-                        return null
-                      })}
-
-                      <PaginationItem>
-                        <PaginationNext
-                          onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
+                <div className="pt-4 border-t border-red-200">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" className="w-full">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Resetear TODA la Base de Datos
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esto eliminará TODOS los estudiantes de la base de datos. Esta acción no se puede deshacer y
+                          afectará a {students.length} estudiantes.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleResetAll} className="bg-red-600 hover:bg-red-700">
+                          Sí, eliminar todo
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="border-red-200 bg-red-50/50">
-        <CardHeader>
-          <CardTitle className="text-red-800 flex items-center gap-2">
-            <Trash2 className="h-5 w-5" />
-            Resetear Base de Datos
-          </CardTitle>
-          <CardDescription className="text-red-700">
-            Elimina estudiantes de la base de datos. Esta acción no se puede deshacer.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Resetear por Programa</Label>
-              <div className="flex gap-2">
-                <Input
-                  type="text"
-                  placeholder="Seleccionar programa..."
-                  value={resetPrograma}
-                  onChange={(e) => setResetPrograma(e.target.value)}
-                  list="reset-programas-list"
-                  className="flex-1"
-                />
-                <datalist id="reset-programas-list">
-                  {uniqueProgramas.map((p: string) => (
-                    <option key={p} value={p} />
-                  ))}
-                </datalist>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" disabled={!resetPrograma}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Esto eliminará todos los estudiantes del programa "{resetPrograma}". Esta acción no se puede
-                        deshacer.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleResetByPrograma} className="bg-red-600 hover:bg-red-700">
-                        Eliminar
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Resetear por Grupo</Label>
-              <div className="flex gap-2">
-                <Input
-                  type="text"
-                  placeholder="Seleccionar grupo..."
-                  value={resetGrupo}
-                  onChange={(e) => setResetGrupo(e.target.value)}
-                  list="reset-grupos-list"
-                  className="flex-1"
-                />
-                <datalist id="reset-grupos-list">
-                  {uniqueGrupos.map((g: string) => (
-                    <option key={g} value={g} />
-                  ))}
-                </datalist>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" disabled={!resetGrupo}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Esto eliminará todos los estudiantes del grupo "{resetGrupo}". Esta acción no se puede deshacer.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleResetByGrupo} className="bg-red-600 hover:bg-red-700">
-                        Eliminar
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-red-200">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="w-full">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Resetear TODA la Base de Datos
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esto eliminará TODOS los estudiantes de la base de datos. Esta acción no se puede deshacer y
-                    afectará a {students.length} estudiantes.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleResetAll} className="bg-red-600 hover:bg-red-700">
-                    Sí, eliminar todo
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              </CardContent>
+            </Card>
           </div>
         </CardContent>
       </Card>

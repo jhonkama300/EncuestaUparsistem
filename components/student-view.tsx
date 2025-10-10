@@ -6,6 +6,8 @@ import { LogOut, ClipboardList, CheckCircle2 } from "lucide-react"
 import type { UserData } from "@/lib/auth"
 import { getAssignedSurveys, submitSurveyResponse } from "@/lib/surveys"
 import { SurveyForm } from "./survey-form"
+import { collection, query, where, onSnapshot } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 
 interface StudentViewProps {
   user: UserData
@@ -22,8 +24,22 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
   console.log("[v0] StudentView montado - user:", user?.documento, "userData:", userData?.documento)
 
   useEffect(() => {
-    console.log("[v0] StudentView useEffect ejecutándose")
+    console.log("[v0] StudentView useEffect - configurando listener en tiempo real")
+
+    const surveysRef = collection(db, "encuestas")
+    const qSurveys = query(surveysRef, where("activa", "==", true))
+
+    const unsubscribe = onSnapshot(qSurveys, async () => {
+      console.log("[v0] Cambio detectado en encuestas - recargando...")
+      await loadSurveys()
+    })
+
     loadSurveys()
+
+    return () => {
+      console.log("[v0] Limpiando listener de encuestas")
+      unsubscribe()
+    }
   }, [user.documento])
 
   const loadSurveys = async () => {
@@ -120,6 +136,9 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
                     <div className="flex-1">
                       <CardTitle className="text-emerald-800">{survey.titulo}</CardTitle>
                       <CardDescription className="mt-1">{survey.descripcion}</CardDescription>
+                      {survey.ponenteNombre && (
+                        <p className="text-sm text-emerald-600 font-medium mt-2">👤 Ponente: {survey.ponenteNombre}</p>
+                      )}
                     </div>
                     {survey.completada && <CheckCircle2 className="h-6 w-6 text-emerald-600" />}
                   </div>

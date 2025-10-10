@@ -341,3 +341,66 @@ export async function resetAllStudents(): Promise<number> {
     throw error
   }
 }
+
+export async function deleteStudentByDocumento(documento: string): Promise<boolean> {
+  try {
+    console.log("[v0] Eliminando estudiante con documento:", documento)
+    const estudiantesRef = collection(db, "estudiantes")
+    const usuariosRef = collection(db, "usuarios")
+
+    // Buscar estudiante por documento
+    const qEstudiante = query(estudiantesRef, where("documento", "==", documento))
+    const estudianteSnapshot = await getDocs(qEstudiante)
+
+    if (estudianteSnapshot.empty) {
+      console.log("[v0] No se encontró estudiante con documento:", documento)
+      return false
+    }
+
+    const batch = writeBatch(db)
+
+    // Eliminar estudiante
+    estudianteSnapshot.docs.forEach((docSnap) => {
+      batch.delete(doc(db, "estudiantes", docSnap.id))
+    })
+
+    // Eliminar usuario asociado
+    const qUsuario = query(usuariosRef, where("documento", "==", documento))
+    const usuarioSnapshot = await getDocs(qUsuario)
+    usuarioSnapshot.docs.forEach((docSnap) => {
+      batch.delete(doc(db, "usuarios", docSnap.id))
+    })
+
+    await batch.commit()
+    console.log("[v0] Estudiante eliminado exitosamente:", documento)
+    return true
+  } catch (error) {
+    console.error("[v0] Error eliminando estudiante:", error)
+    throw error
+  }
+}
+
+export async function searchStudentByName(searchTerm: string) {
+  try {
+    console.log("[v0] Buscando estudiante por nombre:", searchTerm)
+    const estudiantesRef = collection(db, "estudiantes")
+    const snapshot = await getDocs(estudiantesRef)
+
+    const searchLower = searchTerm.toLowerCase()
+    const results = snapshot.docs
+      .map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }))
+      .filter((student: any) => {
+        const fullName =
+          `${student.primerNombre} ${student.segundoNombre || ""} ${student.primerApellido} ${student.segundoApellido || ""}`.toLowerCase()
+        return fullName.includes(searchLower) || student.documento?.toLowerCase().includes(searchLower)
+      })
+
+    return results
+  } catch (error) {
+    console.error("[v0] Error buscando estudiante:", error)
+    return []
+  }
+}

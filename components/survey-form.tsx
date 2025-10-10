@@ -68,6 +68,9 @@ export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyF
           <div className="text-white flex-1 min-w-0">
             <h1 className="text-lg sm:text-2xl font-bold truncate">{survey.titulo}</h1>
             <p className="text-xs sm:text-sm text-emerald-100 truncate">{user.nombre}</p>
+            {survey.ponenteNombre && (
+              <p className="text-xs sm:text-sm text-emerald-100 truncate">👤 Evaluando a: {survey.ponenteNombre}</p>
+            )}
           </div>
           <Button
             variant="outline"
@@ -98,6 +101,11 @@ export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyF
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="text-emerald-800 text-lg sm:text-xl">{survey.titulo}</CardTitle>
             <CardDescription className="text-sm">{survey.descripcion}</CardDescription>
+            {survey.ponenteNombre && (
+              <div className="mt-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                <p className="text-sm font-semibold text-emerald-900">👤 Ponente a evaluar: {survey.ponenteNombre}</p>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="p-4 sm:p-6">
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">

@@ -50,6 +50,7 @@ export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyF
       console.log("[v0] Encuesta enviada exitosamente")
     } catch (error) {
       console.error("[v0] Error enviando encuesta:", error)
+    } finally {
       isSubmittingRef.current = false
       setIsSubmitting(false)
     }

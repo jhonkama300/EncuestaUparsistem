@@ -20,7 +20,6 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
   const [surveys, setSurveys] = useState<any[]>([])
   const [selectedSurvey, setSelectedSurvey] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   console.log("[v0] StudentView montado - user:", user?.documento, "userData:", userData?.documento)
 
@@ -57,17 +56,13 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
   }
 
   const handleSubmitSurvey = async (surveyId: string, responses: any) => {
-    if (isSubmitting) return
-
-    setIsSubmitting(true)
     try {
       await submitSurveyResponse(surveyId, user.documento, responses)
       await loadSurveys()
       setSelectedSurvey(null)
     } catch (error) {
       console.error("Error enviando respuestas:", error)
-    } finally {
-      setIsSubmitting(false)
+      throw error
     }
   }
 
@@ -87,7 +82,6 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
         onSubmit={(responses) => handleSubmitSurvey(selectedSurvey.id, responses)}
         onBack={() => setSelectedSurvey(null)}
         onLogout={handleLogoutClick}
-        isSubmitting={isSubmitting}
       />
     )
   }

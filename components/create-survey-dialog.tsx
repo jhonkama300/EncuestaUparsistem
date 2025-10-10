@@ -170,7 +170,7 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
         surveyData.horaFin = horaFin.trim()
       }
 
-      if (editingSurvey) {
+      if (editingSurvey && editingSurvey.id) {
         await updateSurvey(editingSurvey.id, surveyData)
       } else {
         await createSurvey(surveyData)

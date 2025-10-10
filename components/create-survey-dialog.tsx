@@ -15,6 +15,7 @@ import { getUniqueStudentValues } from "@/lib/students"
 import { CreateTemplateDialog } from "./create-template-dialog"
 import { SurveyTemplateManager } from "./survey-template-manager"
 import { getTemplates } from "@/lib/survey-templates"
+import { dateInputToLocalISO, localISOToDateInput } from "@/lib/date-utils"
 
 interface CreateSurveyDialogProps {
   open: boolean
@@ -81,7 +82,7 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
       setNivel(editingSurvey.nivel || "")
       setPeriodo(editingSurvey.periodo || "")
       setGrupo(editingSurvey.grupo || "")
-      setFechaEncuesta(editingSurvey.fechaEncuesta || "")
+      setFechaEncuesta(editingSurvey.fechaEncuesta ? localISOToDateInput(editingSurvey.fechaEncuesta) : "")
       setHoraInicio(editingSurvey.horaInicio || "")
       setHoraFin(editingSurvey.horaFin || "")
     } else if (!open) {
@@ -160,7 +161,7 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
         surveyData.grupo = grupo.trim()
       }
       if (fechaEncuesta && fechaEncuesta.trim() !== "") {
-        surveyData.fechaEncuesta = fechaEncuesta.trim()
+        surveyData.fechaEncuesta = dateInputToLocalISO(fechaEncuesta.trim())
       }
       if (horaInicio && horaInicio.trim() !== "") {
         surveyData.horaInicio = horaInicio.trim()

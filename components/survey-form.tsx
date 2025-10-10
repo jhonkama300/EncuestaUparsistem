@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -22,15 +22,44 @@ interface SurveyFormProps {
 
 export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyFormProps) {
   const [responses, setResponses] = useState<Record<string, string>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const isSubmittingRef = useRef(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit(responses)
+
+    if (isSubmittingRef.current || isSubmitting) {
+      console.log("[v0] Envío ya en proceso, ignorando clic adicional")
+      return
+    }
+
+    const totalPreguntas = survey.preguntas?.length || 0
+    const respuestasCompletas = Object.keys(responses).length
+
+    if (respuestasCompletas < totalPreguntas) {
+      console.log("[v0] Faltan preguntas por responder")
+      return
+    }
+
+    console.log("[v0] Iniciando envío de encuesta")
+    isSubmittingRef.current = true
+    setIsSubmitting(true)
+
+    try {
+      await onSubmit(responses)
+      console.log("[v0] Encuesta enviada exitosamente")
+    } catch (error) {
+      console.error("[v0] Error enviando encuesta:", error)
+      isSubmittingRef.current = false
+      setIsSubmitting(false)
+    }
   }
 
   const updateResponse = (preguntaIndex: number, value: string) => {
     setResponses({ ...responses, [preguntaIndex]: value })
   }
+
+  const allQuestionsAnswered = Object.keys(responses).length >= (survey.preguntas?.length || 0)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
@@ -45,6 +74,7 @@ export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyF
             onClick={onLogout}
             className="gap-2 border-white bg-white/10 text-white hover:bg-white/20 ml-2 text-xs sm:text-sm"
             size="sm"
+            disabled={isSubmitting}
           >
             <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Cerrar Sesión</span>
@@ -54,7 +84,12 @@ export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyF
       </header>
 
       <main className="container mx-auto max-w-4xl p-3 sm:p-4 py-4 sm:py-8">
-        <Button onClick={onBack} variant="ghost" className="mb-3 sm:mb-4 gap-2 text-emerald-700 text-sm">
+        <Button
+          onClick={onBack}
+          variant="ghost"
+          className="mb-3 sm:mb-4 gap-2 text-emerald-700 text-sm"
+          disabled={isSubmitting}
+        >
           <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
           Volver a mis encuestas
         </Button>
@@ -73,7 +108,11 @@ export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyF
                   </Label>
 
                   {pregunta.tipo === "opcion_multiple" && (
-                    <RadioGroup value={responses[index] || ""} onValueChange={(value) => updateResponse(index, value)}>
+                    <RadioGroup
+                      value={responses[index] || ""}
+                      onValueChange={(value) => updateResponse(index, value)}
+                      disabled={isSubmitting}
+                    >
                       {["Excelente", "Bueno", "Regular", "Malo"].map((opcion) => (
                         <div key={opcion} className="flex items-center space-x-2">
                           <RadioGroupItem value={opcion.toLowerCase()} id={`p${index}-${opcion}`} />
@@ -86,7 +125,11 @@ export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyF
                   )}
 
                   {pregunta.tipo === "escala" && (
-                    <RadioGroup value={responses[index] || ""} onValueChange={(value) => updateResponse(index, value)}>
+                    <RadioGroup
+                      value={responses[index] || ""}
+                      onValueChange={(value) => updateResponse(index, value)}
+                      disabled={isSubmitting}
+                    >
                       <div className="flex gap-2 sm:gap-4 justify-center">
                         {[1, 2, 3, 4, 5].map((num) => (
                           <div key={num} className="flex flex-col items-center">
@@ -106,6 +149,7 @@ export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyF
                       onChange={(e) => updateResponse(index, e.target.value)}
                       placeholder="Tu respuesta..."
                       className="text-sm sm:text-base"
+                      disabled={isSubmitting}
                     />
                   )}
 
@@ -116,6 +160,7 @@ export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyF
                       placeholder="Tu respuesta..."
                       rows={4}
                       className="text-sm sm:text-base"
+                      disabled={isSubmitting}
                     />
                   )}
                 </div>
@@ -125,9 +170,9 @@ export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyF
                 type="submit"
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-sm sm:text-base"
                 size="lg"
-                disabled={Object.keys(responses).length < (survey.preguntas?.length || 0)}
+                disabled={!allQuestionsAnswered || isSubmitting}
               >
-                Enviar Encuesta
+                {isSubmitting ? "Enviando encuesta..." : "Enviar Encuesta"}
               </Button>
             </form>
           </CardContent>

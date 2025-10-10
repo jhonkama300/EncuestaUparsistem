@@ -6,9 +6,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Plus, FileText, Users, TrendingUp, Edit, Trash2, Eye, Calendar, Clock, Filter, Copy } from "lucide-react"
+import {
+  Plus,
+  FileText,
+  Users,
+  TrendingUp,
+  Edit,
+  Trash2,
+  Eye,
+  Calendar,
+  Clock,
+  Filter,
+  Copy,
+  BarChart3,
+} from "lucide-react"
 import { CreateSurveyDialog } from "./create-survey-dialog"
 import { SurveyResultsDialog } from "./survey-results-dialog"
+import { SurveyStatisticsDialog } from "./survey-statistics-dialog"
 import { getAllSurveys, getSurveyStats, deleteSurvey, updateSurvey } from "@/lib/surveys"
 import { useToast } from "@/hooks/use-toast"
 import { formatDateForDisplay, formatTimeForDisplay } from "@/lib/date-utils"
@@ -27,6 +41,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export function SurveyManager() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showResultsDialog, setShowResultsDialog] = useState(false)
+  const [showStatisticsDialog, setShowStatisticsDialog] = useState(false)
   const [selectedSurvey, setSelectedSurvey] = useState<any>(null)
   const [surveys, setSurveys] = useState<any[]>([])
   const [filteredSurveys, setFilteredSurveys] = useState<any[]>([])
@@ -171,6 +186,11 @@ export function SurveyManager() {
   const handleViewResults = (survey: any) => {
     setSelectedSurvey(survey)
     setShowResultsDialog(true)
+  }
+
+  const handleViewStatistics = (survey: any) => {
+    setSelectedSurvey(survey)
+    setShowStatisticsDialog(true)
   }
 
   const handleDialogClose = (open: boolean) => {
@@ -424,17 +444,26 @@ export function SurveyManager() {
                     <Button
                       size="sm"
                       variant="outline"
+                      onClick={() => handleViewStatistics(survey)}
+                      className="border-purple-600 text-purple-700 hover:bg-purple-50 bg-transparent gap-2"
+                    >
+                      <BarChart3 className="h-3 w-3" />
+                      Estadísticas
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
                       onClick={() => handleViewResults(survey)}
                       className="border-emerald-600 text-emerald-700 hover:bg-emerald-50 bg-transparent gap-2"
                     >
                       <Eye className="h-3 w-3" />
-                      Ver Resultados
+                      Ver Respuestas
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => handleCloneSurvey(survey)}
-                      className="border-purple-600 text-purple-700 hover:bg-purple-50 bg-transparent gap-2"
+                      className="border-blue-600 text-blue-700 hover:bg-blue-50 bg-transparent gap-2"
                     >
                       <Copy className="h-3 w-3" />
                       Clonar
@@ -443,7 +472,7 @@ export function SurveyManager() {
                       size="sm"
                       variant="outline"
                       onClick={() => handleEditSurvey(survey)}
-                      className="border-blue-600 text-blue-700 hover:bg-blue-50 bg-transparent gap-2"
+                      className="border-orange-600 text-orange-700 hover:bg-orange-50 bg-transparent gap-2"
                     >
                       <Edit className="h-3 w-3" />
                       Editar
@@ -473,12 +502,20 @@ export function SurveyManager() {
       />
 
       {selectedSurvey && (
-        <SurveyResultsDialog
-          open={showResultsDialog}
-          onOpenChange={setShowResultsDialog}
-          surveyId={selectedSurvey.id}
-          surveyTitle={selectedSurvey.titulo}
-        />
+        <>
+          <SurveyResultsDialog
+            open={showResultsDialog}
+            onOpenChange={setShowResultsDialog}
+            surveyId={selectedSurvey.id}
+            surveyTitle={selectedSurvey.titulo}
+          />
+          <SurveyStatisticsDialog
+            open={showStatisticsDialog}
+            onOpenChange={setShowStatisticsDialog}
+            surveyId={selectedSurvey.id}
+            surveyTitle={selectedSurvey.titulo}
+          />
+        </>
       )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

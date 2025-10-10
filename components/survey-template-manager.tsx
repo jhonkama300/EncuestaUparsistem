@@ -51,6 +51,11 @@ export function SurveyTemplateManager({ onSelectTemplate }: SurveyTemplateManage
     }
   }
 
+  const handleDeleteClick = (templateId: string) => {
+    setTemplateToDelete(templateId)
+    setDeleteDialogOpen(true)
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -115,10 +120,8 @@ export function SurveyTemplateManager({ onSelectTemplate }: SurveyTemplateManage
                   </Button>
                 )}
                 <Button
-                  onClick={() => {
-                    setTemplateToDelete(template.id)
-                    setDeleteDialogOpen(true)
-                  }}
+                  type="button"
+                  onClick={() => handleDeleteClick(template.id)}
                   variant="outline"
                   size="sm"
                   className="text-red-600 hover:text-red-700 hover:bg-red-50"

@@ -168,16 +168,28 @@ export async function getAllSurveys() {
     const querySnapshot = await getDocs(surveysRef)
 
     const respuestasRef = collection(db, "respuestas")
+    const ponentesRef = collection(db, "ponentes")
 
     const surveysWithCounts = await Promise.all(
       querySnapshot.docs.map(async (surveyDoc) => {
+        const surveyData = surveyDoc.data()
         const qRespuestas = query(respuestasRef, where("encuestaId", "==", surveyDoc.id))
         const respuestasSnapshot = await getDocs(qRespuestas)
 
+        let ponenteNombre = null
+        if (surveyData.ponenteId) {
+          const qPonente = query(ponentesRef, where("__name__", "==", surveyData.ponenteId))
+          const ponenteSnapshot = await getDocs(qPonente)
+          if (!ponenteSnapshot.empty) {
+            ponenteNombre = ponenteSnapshot.docs[0].data().nombre
+          }
+        }
+
         return {
           id: surveyDoc.id,
-          ...surveyDoc.data(),
+          ...surveyData,
           respuestas: respuestasSnapshot.size,
+          ponenteNombre,
         }
       }),
     )
@@ -293,23 +305,45 @@ export async function getSurveyResponses(surveyId: string) {
 
     const estudiantesRef = collection(db, "estudiantes")
 
+    console.log("[v0] getSurveyResponses - Total respuestas:", respuestasSnapshot.size)
+
     const responsesWithStudents = await Promise.all(
       respuestasSnapshot.docs.map(async (respuestaDoc) => {
         const respuesta = respuestaDoc.data()
+        console.log("[v0] Procesando respuesta:", respuesta.documento)
+        console.log("[v0] Respuestas del estudiante:", respuesta.respuestas)
+
         const qEstudiante = query(estudiantesRef, where("documento", "==", respuesta.documento))
         const estudianteSnapshot = await getDocs(qEstudiante)
 
         const estudiante = estudianteSnapshot.empty ? null : estudianteSnapshot.docs[0].data()
+        console.log("[v0] Estudiante encontrado:", estudiante)
+
+        let nombreCompleto = `Estudiante ${respuesta.documento}`
+        if (estudiante) {
+          const nombres = [
+            estudiante.primerNombre,
+            estudiante.segundoNombre,
+            estudiante.primerApellido,
+            estudiante.segundoApellido,
+          ]
+            .filter(Boolean)
+            .join(" ")
+          nombreCompleto = nombres || nombreCompleto
+        }
 
         return {
           id: respuestaDoc.id,
           ...respuesta,
-          nombreEstudiante: estudiante?.nombre || "Desconocido",
+          nombreEstudiante: nombreCompleto,
           grupoEstudiante: estudiante?.grupo || "N/A",
+          programaEstudiante: estudiante?.programa || "N/A",
+          nivelEstudiante: estudiante?.nivel || "N/A",
         }
       }),
     )
 
+    console.log("[v0] Respuestas procesadas:", responsesWithStudents)
     return responsesWithStudents
   } catch (error) {
     console.error("Error obteniendo respuestas de encuesta:", error)

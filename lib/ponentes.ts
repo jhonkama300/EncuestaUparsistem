@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, query, where, doc, updateDoc } from "firebase/firestore"
+import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc } from "firebase/firestore"
 import { db } from "./firebase"
 
 export interface PonenteData {
@@ -125,10 +125,10 @@ export async function getPonentesByFilters(filters: {
 
 export async function deletePonente(ponenteId: string): Promise<void> {
   try {
-    console.log("[v0] Eliminando ponente:", ponenteId)
+    console.log("[v0] Eliminando ponente de la BD:", ponenteId)
     const ponenteRef = doc(db, "ponentes", ponenteId)
-    await updateDoc(ponenteRef, { activo: false })
-    console.log("[v0] Ponente marcado como inactivo:", ponenteId)
+    await deleteDoc(ponenteRef)
+    console.log("[v0] Ponente eliminado completamente:", ponenteId)
   } catch (error) {
     console.error("[v0] Error eliminando ponente:", error)
     throw error

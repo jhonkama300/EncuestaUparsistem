@@ -6,11 +6,22 @@ import { LoginView } from "@/components/login-view"
 import { StudentView } from "@/components/student-view"
 import { AdminView } from "@/components/admin-view"
 import { MainView } from "@/components/main-view"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function Home() {
   const [user, setUser] = useState<UserData | null>(null)
   const [userData, setUserData] = useState<UserData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
 
   useEffect(() => {
     const savedUser = localStorage.getItem("uparsistem_user")
@@ -55,10 +66,15 @@ export default function Home() {
   }
 
   const handleLogout = () => {
+    setLogoutDialogOpen(true)
+  }
+
+  const handleLogoutConfirm = () => {
     console.log("[v0] Cerrando sesión")
     setUser(null)
     setUserData(null)
     localStorage.removeItem("uparsistem_user")
+    setLogoutDialogOpen(false)
   }
 
   console.log("[v0] Renderizando Home - user:", user?.documento, "rol:", user?.rol)
@@ -78,11 +94,32 @@ export default function Home() {
     return <LoginView onLoginStudent={handleLoginStudent} onLoginAdmin={handleLoginAdmin} />
   }
 
-  if (userData && userData.rol === "admin") {
-    return <AdminView user={user} userData={userData} onLogout={handleLogout} />
-  } else if (userData && userData.rol === "estudiante") {
-    return <StudentView user={user} userData={userData} onLogout={handleLogout} />
-  } else {
-    return <MainView user={user} userData={userData} onLogout={handleLogout} />
-  }
+  return (
+    <>
+      {userData && userData.rol === "admin" ? (
+        <AdminView user={user} userData={userData} onLogout={handleLogout} />
+      ) : userData && userData.rol === "estudiante" ? (
+        <StudentView user={user} userData={userData} onLogout={handleLogout} />
+      ) : (
+        <MainView user={user} userData={userData} onLogout={handleLogout} />
+      )}
+
+      <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Cerrar sesión?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas cerrar sesión? Tendrás que volver a iniciar sesión para acceder al sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogoutConfirm} className="bg-emerald-600 hover:bg-emerald-700">
+              Cerrar Sesión
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
 }

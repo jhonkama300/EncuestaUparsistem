@@ -11,8 +11,18 @@ import { CreateSurveyDialog } from "./create-survey-dialog"
 import { SurveyResultsDialog } from "./survey-results-dialog"
 import { getAllSurveys, getSurveyStats, deleteSurvey, updateSurvey } from "@/lib/surveys"
 import { useToast } from "@/hooks/use-toast"
-import { getUniqueStudentValues } from "@/lib/students"
 import { formatDateForDisplay, formatTimeForDisplay } from "@/lib/date-utils"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function SurveyManager() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -24,26 +34,22 @@ export function SurveyManager() {
   const [editingSurvey, setEditingSurvey] = useState<any>(null)
   const { toast } = useToast()
 
-  const [filterPrograma, setFilterPrograma] = useState("")
-  const [filterNivel, setFilterNivel] = useState("")
-  const [filterPeriodo, setFilterPeriodo] = useState("")
-  const [filterGrupo, setFilterGrupo] = useState("")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [filterTipo, setFilterTipo] = useState<string>("all")
   const [showFilters, setShowFilters] = useState(false)
-  const [uniqueValues, setUniqueValues] = useState({
-    programas: [],
-    niveles: [],
-    periodos: [],
-    grupos: [],
-  })
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [toggleDialogOpen, setToggleDialogOpen] = useState(false)
+  const [surveyToDelete, setSurveyToDelete] = useState<any>(null)
+  const [surveyToToggle, setSurveyToToggle] = useState<any>(null)
 
   useEffect(() => {
     loadData()
-    loadFilters()
   }, [])
 
   useEffect(() => {
     applyFilters()
-  }, [surveys, filterPrograma, filterNivel, filterPeriodo, filterGrupo])
+  }, [surveys, searchTerm, filterTipo])
 
   const loadData = async () => {
     const surveysData = await getAllSurveys()
@@ -52,25 +58,21 @@ export function SurveyManager() {
     setStats(statsData)
   }
 
-  const loadFilters = async () => {
-    const values = await getUniqueStudentValues()
-    setUniqueValues(values)
-  }
-
   const applyFilters = () => {
     let filtered = [...surveys]
 
-    if (filterPrograma) {
-      filtered = filtered.filter((s) => s.programa?.toLowerCase().includes(filterPrograma.toLowerCase()))
+    // Filtro por búsqueda de texto (nombre de encuesta)
+    if (searchTerm) {
+      filtered = filtered.filter((s) => s.titulo?.toLowerCase().includes(searchTerm.toLowerCase()))
     }
-    if (filterNivel) {
-      filtered = filtered.filter((s) => s.nivel?.toLowerCase().includes(filterNivel.toLowerCase()))
-    }
-    if (filterPeriodo) {
-      filtered = filtered.filter((s) => s.periodo?.toLowerCase().includes(filterPeriodo.toLowerCase()))
-    }
-    if (filterGrupo) {
-      filtered = filtered.filter((s) => s.grupo?.toLowerCase().includes(filterGrupo.toLowerCase()))
+
+    // Filtro por tipo (seminario/diplomado)
+    if (filterTipo !== "all") {
+      if (filterTipo === "seminario") {
+        filtered = filtered.filter((s) => s.titulo?.toUpperCase().includes("SEMINARIO"))
+      } else if (filterTipo === "diplomado") {
+        filtered = filtered.filter((s) => s.titulo?.toUpperCase().includes("DIPLOMADO"))
+      }
     }
 
     setFilteredSurveys(filtered)
@@ -86,12 +88,19 @@ export function SurveyManager() {
     return formatTimeForDisplay(timeString)
   }
 
-  const handleToggleSurvey = async (surveyId: string, currentStatus: boolean, surveyTitle: string) => {
+  const handleToggleSurveyClick = (survey: any) => {
+    setSurveyToToggle(survey)
+    setToggleDialogOpen(true)
+  }
+
+  const handleToggleSurveyConfirm = async () => {
+    if (!surveyToToggle) return
+
     try {
-      await updateSurvey(surveyId, { activa: !currentStatus })
+      await updateSurvey(surveyToToggle.id, { activa: !surveyToToggle.activa })
       toast({
-        title: !currentStatus ? "Encuesta habilitada" : "Encuesta deshabilitada",
-        description: `La encuesta "${surveyTitle}" ha sido ${!currentStatus ? "habilitada" : "deshabilitada"}.`,
+        title: !surveyToToggle.activa ? "Encuesta habilitada" : "Encuesta deshabilitada",
+        description: `La encuesta "${surveyToToggle.titulo}" ha sido ${!surveyToToggle.activa ? "habilitada" : "deshabilitada"}.`,
       })
       loadData()
     } catch (error) {
@@ -101,23 +110,25 @@ export function SurveyManager() {
         description: "No se pudo actualizar el estado de la encuesta.",
         variant: "destructive",
       })
+    } finally {
+      setToggleDialogOpen(false)
+      setSurveyToToggle(null)
     }
   }
 
-  const handleDeleteSurvey = async (surveyId: string, surveyTitle: string) => {
-    if (
-      !confirm(
-        `¿Estás seguro de que deseas eliminar la encuesta "${surveyTitle}"? Esto también eliminará todas las respuestas asociadas.`,
-      )
-    ) {
-      return
-    }
+  const handleDeleteSurveyClick = (survey: any) => {
+    setSurveyToDelete(survey)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteSurveyConfirm = async () => {
+    if (!surveyToDelete) return
 
     try {
-      await deleteSurvey(surveyId)
+      await deleteSurvey(surveyToDelete.id)
       toast({
         title: "Encuesta eliminada",
-        description: `La encuesta "${surveyTitle}" y sus respuestas han sido eliminadas exitosamente.`,
+        description: `La encuesta "${surveyToDelete.titulo}" y sus respuestas han sido eliminadas exitosamente.`,
       })
       loadData()
     } catch (error) {
@@ -127,6 +138,9 @@ export function SurveyManager() {
         description: "No se pudo eliminar la encuesta. Intenta de nuevo.",
         variant: "destructive",
       })
+    } finally {
+      setDeleteDialogOpen(false)
+      setSurveyToDelete(null)
     }
   }
 
@@ -244,73 +258,33 @@ export function SurveyManager() {
         {showFilters && (
           <Card className="mb-4 border-emerald-200 bg-emerald-50/50">
             <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Programa</Label>
+                  <Label className="text-sm font-medium">Buscar por nombre</Label>
                   <Input
                     type="text"
-                    placeholder="Filtrar por programa..."
-                    value={filterPrograma}
-                    onChange={(e) => setFilterPrograma(e.target.value)}
-                    list="filter-programas-list"
+                    placeholder="Nombre de la encuesta..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                   />
-                  <datalist id="filter-programas-list">
-                    {uniqueValues.programas.map((p: string) => (
-                      <option key={p} value={p} />
-                    ))}
-                  </datalist>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Nivel</Label>
-                  <Input
-                    type="text"
-                    placeholder="Filtrar por nivel..."
-                    value={filterNivel}
-                    onChange={(e) => setFilterNivel(e.target.value)}
-                    list="filter-niveles-list"
-                  />
-                  <datalist id="filter-niveles-list">
-                    {uniqueValues.niveles.map((n: string) => (
-                      <option key={n} value={n} />
-                    ))}
-                  </datalist>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Período</Label>
-                  <Input
-                    type="text"
-                    placeholder="Filtrar por período..."
-                    value={filterPeriodo}
-                    onChange={(e) => setFilterPeriodo(e.target.value)}
-                    list="filter-periodos-list"
-                  />
-                  <datalist id="filter-periodos-list">
-                    {uniqueValues.periodos.map((p: string) => (
-                      <option key={p} value={p} />
-                    ))}
-                  </datalist>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Grupo</Label>
-                  <Input
-                    type="text"
-                    placeholder="Filtrar por grupo..."
-                    value={filterGrupo}
-                    onChange={(e) => setFilterGrupo(e.target.value)}
-                    list="filter-grupos-list"
-                  />
-                  <datalist id="filter-grupos-list">
-                    {uniqueValues.grupos.map((g: string) => (
-                      <option key={g} value={g} />
-                    ))}
-                  </datalist>
+                  <Label className="text-sm font-medium">Tipo</Label>
+                  <Select value={filterTipo} onValueChange={setFilterTipo}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="seminario">Seminarios</SelectItem>
+                      <SelectItem value="diplomado">Diplomados</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
-              {(filterPrograma || filterNivel || filterPeriodo || filterGrupo) && (
+              {(searchTerm || filterTipo !== "all") && (
                 <div className="mt-4 flex items-center justify-between">
                   <p className="text-sm text-gray-600">
                     Mostrando {filteredSurveys.length} de {surveys.length} encuestas
@@ -319,10 +293,8 @@ export function SurveyManager() {
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      setFilterPrograma("")
-                      setFilterNivel("")
-                      setFilterPeriodo("")
-                      setFilterGrupo("")
+                      setSearchTerm("")
+                      setFilterTipo("all")
                     }}
                     className="text-emerald-700 hover:text-emerald-800"
                   >
@@ -376,6 +348,15 @@ export function SurveyManager() {
                         )}
                       </div>
                       <CardDescription className="mt-2">{survey.descripcion}</CardDescription>
+
+                      {survey.ponenteNombre && (
+                        <div className="mt-3 flex items-center gap-2">
+                          <div className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-md border border-emerald-200">
+                            <Users className="h-4 w-4" />
+                            <span>Ponente: {survey.ponenteNombre}</span>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="mt-3 flex flex-wrap gap-4 text-sm text-gray-600">
                         {survey.fechaEncuesta && (
@@ -433,7 +414,7 @@ export function SurveyManager() {
                       <Switch
                         id={`toggle-${survey.id}`}
                         checked={survey.activa}
-                        onCheckedChange={() => handleToggleSurvey(survey.id, survey.activa, survey.titulo)}
+                        onCheckedChange={() => handleToggleSurveyClick(survey)}
                       />
                       <Label htmlFor={`toggle-${survey.id}`} className="text-sm cursor-pointer">
                         {survey.activa ? "Habilitada" : "Deshabilitada"}
@@ -470,7 +451,7 @@ export function SurveyManager() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleDeleteSurvey(survey.id, survey.titulo)}
+                      onClick={() => handleDeleteSurveyClick(survey)}
                       className="border-red-600 text-red-700 hover:bg-red-50 bg-transparent gap-2"
                     >
                       <Trash2 className="h-3 w-3" />
@@ -499,6 +480,45 @@ export function SurveyManager() {
           surveyTitle={selectedSurvey.titulo}
         />
       )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar encuesta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas eliminar la encuesta "{surveyToDelete?.titulo}"? Esta acción eliminará
+              permanentemente la encuesta y todas sus respuestas asociadas. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteSurveyConfirm} className="bg-red-600 hover:bg-red-700">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={toggleDialogOpen} onOpenChange={setToggleDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {surveyToToggle?.activa ? "¿Deshabilitar encuesta?" : "¿Habilitar encuesta?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {surveyToToggle?.activa
+                ? `¿Estás seguro de que deseas deshabilitar la encuesta "${surveyToToggle?.titulo}"? Los estudiantes no podrán responderla mientras esté deshabilitada.`
+                : `¿Estás seguro de que deseas habilitar la encuesta "${surveyToToggle?.titulo}"? Los estudiantes podrán responderla una vez habilitada.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleToggleSurveyConfirm} className="bg-emerald-600 hover:bg-emerald-700">
+              {surveyToToggle?.activa ? "Deshabilitar" : "Habilitar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

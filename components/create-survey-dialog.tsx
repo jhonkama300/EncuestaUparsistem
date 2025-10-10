@@ -10,12 +10,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createSurvey, updateSurvey, type SurveyQuestion } from "@/lib/surveys"
 import { GoogleFormsSurveyEditor } from "./google-forms-survey-editor"
 import { SurveyAssignmentSelector } from "./survey-assignment-selector"
-import { ClipboardList, Users, CheckCircle, Calendar, Clock, FileText, Save } from "lucide-react"
+import { ClipboardList, Users, CheckCircle, Calendar, Clock, FileText, Save, X, Plus } from "lucide-react"
 import { getUniqueStudentValues } from "@/lib/students"
 import { CreateTemplateDialog } from "./create-template-dialog"
 import { SurveyTemplateManager } from "./survey-template-manager"
 import { getTemplates } from "@/lib/survey-templates"
 import { dateInputToLocalISO, localISOToDateInput } from "@/lib/date-utils"
+import { Badge } from "@/components/ui/badge"
 
 interface CreateSurveyDialogProps {
   open: boolean
@@ -43,7 +44,8 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
   const [programa, setPrograma] = useState("")
   const [nivel, setNivel] = useState("")
   const [periodo, setPeriodo] = useState("")
-  const [grupo, setGrupo] = useState("")
+  const [gruposCategoria, setGruposCategoria] = useState<string[]>([])
+  const [grupoInput, setGrupoInput] = useState("")
   const [fechaEncuesta, setFechaEncuesta] = useState("")
   const [horaInicio, setHoraInicio] = useState("")
   const [horaFin, setHoraFin] = useState("")
@@ -60,6 +62,7 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
 
   const [createTemplateDialogOpen, setCreateTemplateDialogOpen] = useState(false)
   const [showTemplateSelector, setShowTemplateSelector] = useState(false)
+  const [grupoError, setGrupoError] = useState("") // Agregado estado para mensaje de error de duplicados
 
   useEffect(() => {
     loadFilters()
@@ -81,7 +84,13 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
       setPrograma(editingSurvey.programa || "")
       setNivel(editingSurvey.nivel || "")
       setPeriodo(editingSurvey.periodo || "")
-      setGrupo(editingSurvey.grupo || "")
+      if (editingSurvey.grupos && Array.isArray(editingSurvey.grupos)) {
+        setGruposCategoria(editingSurvey.grupos)
+      } else if (editingSurvey.grupo) {
+        setGruposCategoria([editingSurvey.grupo])
+      } else {
+        setGruposCategoria([])
+      }
       setFechaEncuesta(editingSurvey.fechaEncuesta ? localISOToDateInput(editingSurvey.fechaEncuesta) : "")
       setHoraInicio(editingSurvey.horaInicio || "")
       setHoraFin(editingSurvey.horaFin || "")
@@ -104,12 +113,14 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
       setPrograma("")
       setNivel("")
       setPeriodo("")
-      setGrupo("")
+      setGruposCategoria([])
+      setGrupoInput("")
       setFechaEncuesta("")
       setHoraInicio("")
       setHoraFin("")
       setActiveTab("preguntas")
       setShowTemplateSelector(false)
+      setGrupoError("") // Limpiar error al cerrar el diálogo
     }
   }, [editingSurvey, open])
 
@@ -124,6 +135,27 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
       setShowTemplateSelector(false)
       setActiveTab("preguntas")
     }
+  }
+
+  const addGrupoCategoria = () => {
+    const grupoTrimmed = grupoInput.trim()
+
+    if (!grupoTrimmed) {
+      return
+    }
+
+    if (gruposCategoria.includes(grupoTrimmed)) {
+      setGrupoError("Este grupo ya ha sido agregado")
+      return
+    }
+
+    setGruposCategoria([...gruposCategoria, grupoTrimmed])
+    setGrupoInput("")
+    setGrupoError("")
+  }
+
+  const removeGrupoCategoria = (index: number) => {
+    setGruposCategoria(gruposCategoria.filter((_, i) => i !== index))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -157,8 +189,8 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
       if (periodo && periodo.trim() !== "") {
         surveyData.periodo = periodo.trim()
       }
-      if (grupo && grupo.trim() !== "") {
-        surveyData.grupo = grupo.trim()
+      if (gruposCategoria.length > 0) {
+        surveyData.grupos = gruposCategoria
       }
       if (fechaEncuesta && fechaEncuesta.trim() !== "") {
         surveyData.fechaEncuesta = dateInputToLocalISO(fechaEncuesta.trim())
@@ -325,19 +357,56 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
                         </div>
 
                         <div className="space-y-2">
-                          <Label>Grupo</Label>
-                          <Input
-                            type="text"
-                            placeholder="Buscar grupo..."
-                            value={grupo}
-                            onChange={(e) => setGrupo(e.target.value)}
-                            list="grupos-cat-list"
-                          />
+                          <Label>Grupos</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              type="text"
+                              placeholder="Buscar grupo..."
+                              value={grupoInput}
+                              onChange={(e) => {
+                                setGrupoInput(e.target.value)
+                                if (grupoError) setGrupoError("")
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault()
+                                  addGrupoCategoria()
+                                }
+                              }}
+                              list="grupos-cat-list"
+                            />
+                            <Button
+                              type="button"
+                              onClick={addGrupoCategoria}
+                              disabled={!grupoInput.trim()}
+                              size="icon"
+                              className="flex-shrink-0"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
                           <datalist id="grupos-cat-list">
                             {uniqueValues.grupos.map((g: string) => (
                               <option key={g} value={g} />
                             ))}
                           </datalist>
+                          {grupoError && <p className="text-sm text-red-600">{grupoError}</p>}
+                          {gruposCategoria.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {gruposCategoria.map((grupo, index) => (
+                                <Badge key={index} variant="secondary" className="flex items-center gap-2">
+                                  {grupo}
+                                  <button
+                                    type="button"
+                                    onClick={() => removeGrupoCategoria(index)}
+                                    className="hover:bg-red-100 rounded-full p-0.5"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

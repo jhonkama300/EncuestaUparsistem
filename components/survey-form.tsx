@@ -15,7 +15,7 @@ import type { UserData } from "@/lib/auth"
 interface SurveyFormProps {
   survey: any
   user: UserData
-  onSubmit: (responses: any) => void
+  onSubmit: (responses: any) => Promise<void>
   onBack: () => void
   onLogout: () => void
 }
@@ -23,6 +23,7 @@ interface SurveyFormProps {
 export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyFormProps) {
   const [responses, setResponses] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const isSubmittingRef = useRef(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,20 +38,22 @@ export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyF
     const respuestasCompletas = Object.keys(responses).length
 
     if (respuestasCompletas < totalPreguntas) {
-      console.log("[v0] Faltan preguntas por responder")
+      setError("Por favor responde todas las preguntas antes de enviar")
       return
     }
 
     console.log("[v0] Iniciando envío de encuesta")
     isSubmittingRef.current = true
     setIsSubmitting(true)
+    setError(null)
 
     try {
       await onSubmit(responses)
       console.log("[v0] Encuesta enviada exitosamente")
+      // No reseteamos isSubmitting aquí porque onSubmit manejará la navegación
     } catch (error) {
       console.error("[v0] Error enviando encuesta:", error)
-    } finally {
+      setError("Error al enviar la encuesta. Por favor intenta de nuevo.")
       isSubmittingRef.current = false
       setIsSubmitting(false)
     }
@@ -58,6 +61,7 @@ export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyF
 
   const updateResponse = (preguntaIndex: number, value: string) => {
     setResponses({ ...responses, [preguntaIndex]: value })
+    setError(null)
   }
 
   const allQuestionsAnswered = Object.keys(responses).length >= (survey.preguntas?.length || 0)
@@ -174,6 +178,12 @@ export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyF
                   )}
                 </div>
               ))}
+
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-600">{error}</p>
+                </div>
+              )}
 
               <Button
                 type="submit"

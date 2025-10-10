@@ -56,12 +56,21 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
   }
 
   const handleSubmitSurvey = async (surveyId: string, responses: any) => {
+    console.log("[v0] handleSubmitSurvey - Iniciando envío para encuesta:", surveyId)
+    console.log("[v0] handleSubmitSurvey - Respuestas:", responses)
+    console.log("[v0] handleSubmitSurvey - Documento estudiante:", user.documento)
+
     try {
       await submitSurveyResponse(surveyId, user.documento, responses)
+      console.log("[v0] handleSubmitSurvey - Respuesta guardada exitosamente")
+
       await loadSurveys()
+      console.log("[v0] handleSubmitSurvey - Encuestas recargadas")
+
       setSelectedSurvey(null)
+      console.log("[v0] handleSubmitSurvey - Navegando de vuelta a la lista")
     } catch (error) {
-      console.error("Error enviando respuestas:", error)
+      console.error("[v0] handleSubmitSurvey - Error enviando respuestas:", error)
       throw error
     }
   }

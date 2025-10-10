@@ -206,7 +206,7 @@ export function SurveyResultsDialog({ open, onOpenChange, surveyId, surveyTitle 
                             ) : (
                               <>
                                 <ChevronDown className="h-4 w-4" />
-                                Ver Respuestas
+                                Respuestas
                               </>
                             )}
                           </Button>

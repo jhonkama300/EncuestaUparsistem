@@ -1,4 +1,4 @@
-import { collection, query, where, getDocs, writeBatch, doc } from "firebase/firestore"
+import { collection, query, where, getDocs, writeBatch, doc, updateDoc } from "firebase/firestore"
 import { db } from "./firebase"
 import * as XLSX from "xlsx"
 
@@ -402,5 +402,131 @@ export async function searchStudentByName(searchTerm: string) {
   } catch (error) {
     console.error("[v0] Error buscando estudiante:", error)
     return []
+  }
+}
+
+export async function assignStudentToGroup(documento: string, nuevoGrupo: string): Promise<boolean> {
+  try {
+    console.log("[v0] Asignando estudiante", documento, "al grupo:", nuevoGrupo)
+    const estudiantesRef = collection(db, "estudiantes")
+
+    // Buscar estudiante por documento
+    const qEstudiante = query(estudiantesRef, where("documento", "==", documento))
+    const estudianteSnapshot = await getDocs(qEstudiante)
+
+    if (estudianteSnapshot.empty) {
+      console.log("[v0] No se encontró estudiante con documento:", documento)
+      return false
+    }
+
+    // Actualizar el grupo del estudiante
+    const estudianteDoc = estudianteSnapshot.docs[0]
+    const estudianteRef = doc(db, "estudiantes", estudianteDoc.id)
+
+    await updateDoc(estudianteRef, {
+      grupo: nuevoGrupo,
+    })
+
+    console.log("[v0] Estudiante asignado al grupo exitosamente")
+    return true
+  } catch (error) {
+    console.error("[v0] Error asignando estudiante a grupo:", error)
+    throw error
+  }
+}
+
+export async function assignMultipleStudentsToGroup(
+  documentos: string[],
+  nuevoGrupo: string,
+): Promise<{ success: number; errors: string[] }> {
+  try {
+    console.log("[v0] Asignando", documentos.length, "estudiantes al grupo:", nuevoGrupo)
+    const estudiantesRef = collection(db, "estudiantes")
+
+    let batch = writeBatch(db)
+    let batchCount = 0
+    let success = 0
+    const errors: string[] = []
+    const BATCH_SIZE = 500
+
+    for (const documento of documentos) {
+      try {
+        // Buscar estudiante por documento
+        const qEstudiante = query(estudiantesRef, where("documento", "==", documento))
+        const estudianteSnapshot = await getDocs(qEstudiante)
+
+        if (estudianteSnapshot.empty) {
+          errors.push(`Estudiante con documento ${documento} no encontrado`)
+          continue
+        }
+
+        // Actualizar el grupo del estudiante
+        const estudianteDoc = estudianteSnapshot.docs[0]
+        const estudianteRef = doc(db, "estudiantes", estudianteDoc.id)
+
+        batch.update(estudianteRef, { grupo: nuevoGrupo })
+        batchCount++
+        success++
+
+        // Ejecutar batch si alcanza el límite
+        if (batchCount >= BATCH_SIZE) {
+          await batch.commit()
+          console.log("[v0] Batch de", batchCount, "operaciones ejecutado")
+          batch = writeBatch(db)
+          batchCount = 0
+        }
+      } catch (error) {
+        errors.push(`Error asignando estudiante ${documento}: ${error}`)
+      }
+    }
+
+    // Ejecutar batch restante
+    if (batchCount > 0) {
+      await batch.commit()
+      console.log("[v0] Último batch de", batchCount, "operaciones ejecutado")
+    }
+
+    console.log("[v0] Asignación completada. Éxitos:", success, "- Errores:", errors.length)
+    return { success, errors }
+  } catch (error) {
+    console.error("[v0] Error asignando estudiantes a grupo:", error)
+    throw error
+  }
+}
+
+export async function createNewGroup(
+  grupoNombre: string,
+  filtros?: {
+    jornada?: string
+    programa?: string
+    periodo?: string
+    nivel?: string
+  },
+): Promise<number> {
+  try {
+    console.log("[v0] Creando nuevo grupo:", grupoNombre, "con filtros:", filtros)
+
+    if (!filtros || Object.keys(filtros).length === 0) {
+      console.log("[v0] No se proporcionaron filtros, no se asignarán estudiantes")
+      return 0
+    }
+
+    // Obtener estudiantes que coincidan con los filtros
+    const estudiantes = await getStudentsByFilters(filtros)
+
+    if (estudiantes.length === 0) {
+      console.log("[v0] No se encontraron estudiantes con los filtros proporcionados")
+      return 0
+    }
+
+    // Asignar todos los estudiantes al nuevo grupo
+    const documentos = estudiantes.map((e: any) => e.documento)
+    const result = await assignMultipleStudentsToGroup(documentos, grupoNombre)
+
+    console.log("[v0] Grupo creado con", result.success, "estudiantes asignados")
+    return result.success
+  } catch (error) {
+    console.error("[v0] Error creando nuevo grupo:", error)
+    throw error
   }
 }

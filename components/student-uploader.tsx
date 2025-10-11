@@ -18,6 +18,7 @@ import {
   Eye,
   X,
   Database,
+  UserPlus,
 } from "lucide-react"
 import {
   uploadStudentsFromExcel,
@@ -51,6 +52,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import * as XLSX from "xlsx"
+import { AssignStudentsToGroupDialog } from "@/components/assign-students-to-group-dialog"
+import { AddStudentDialog } from "@/components/add-student-dialog" // Importar el nuevo diálogo
 
 interface PreviewData {
   primerNombre: string
@@ -93,6 +96,9 @@ export function StudentUploader() {
   const [deleteSearchTerm, setDeleteSearchTerm] = useState("")
   const [deleteSearchResults, setDeleteSearchResults] = useState<any[]>([])
   const [isSearchingToDelete, setIsSearchingToDelete] = useState(false)
+
+  const [showAssignDialog, setShowAssignDialog] = useState(false)
+  const [showAddStudentDialog, setShowAddStudentDialog] = useState(false)
 
   useEffect(() => {
     loadStudents()
@@ -386,9 +392,21 @@ export function StudentUploader() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-emerald-800">Gestión de Estudiantes</h2>
-        <p className="text-gray-600">Carga, visualiza y administra los estudiantes registrados</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-emerald-800">Gestión de Estudiantes</h2>
+          <p className="text-gray-600">Carga, visualiza y administra los estudiantes registrados</p>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={() => setShowAddStudentDialog(true)} className="bg-blue-600 hover:bg-blue-700">
+            <UserPlus className="h-4 w-4 mr-2" />
+            Agregar un Estudiante
+          </Button>
+          <Button onClick={() => setShowAssignDialog(true)} className="bg-emerald-600 hover:bg-emerald-700">
+            <UserPlus className="h-4 w-4 mr-2" />
+            Asignar a Grupo
+          </Button>
+        </div>
       </div>
 
       <Card className="border-emerald-200 bg-emerald-50/30">
@@ -1052,6 +1070,24 @@ export function StudentUploader() {
           </div>
         </CardContent>
       </Card>
+
+      <AddStudentDialog
+        open={showAddStudentDialog}
+        onOpenChange={setShowAddStudentDialog}
+        onSuccess={() => {
+          loadStudents()
+          setShowAddStudentDialog(false)
+        }}
+      />
+
+      <AssignStudentsToGroupDialog
+        open={showAssignDialog}
+        onOpenChange={setShowAssignDialog}
+        onSuccess={() => {
+          loadStudents()
+          setShowAssignDialog(false)
+        }}
+      />
     </div>
   )
 }

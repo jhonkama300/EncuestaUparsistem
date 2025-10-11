@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { CheckCircle2, XCircle, Search, Users, ChevronDown, ChevronUp, Calendar } from "lucide-react"
+import { CheckCircle2, XCircle, Search, Users, ChevronDown, ChevronUp, Calendar, User } from "lucide-react"
 import { collection, getDocs, query, where } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -225,186 +225,202 @@ export function SurveyStudentsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] h-[90vh] flex flex-col p-1">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b">
-          <DialogTitle className="text-2xl text-emerald-800">Estado de Respuestas</DialogTitle>
-          <DialogDescription>{surveyTitle}</DialogDescription>
+      <DialogContent className="max-w-[98vw] max-h-[95vh] overflow-y-auto">
+        <DialogHeader className="space-y-3 pb-4">
+          <DialogTitle className="text-emerald-800 text-3xl flex items-center gap-3">
+            <Users className="h-7 w-7" />
+            Estado de Respuestas
+          </DialogTitle>
+          <DialogDescription className="text-lg">{surveyTitle}</DialogDescription>
         </DialogHeader>
 
-        <div className="px-6 py-4 space-y-4 flex-1 overflow-y-auto">
+        <div className="space-y-6">
           <div className="grid grid-cols-3 gap-4">
-            <Card className="border-purple-200 bg-purple-50">
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
+            <Card className="border-emerald-200 bg-gradient-to-br from-purple-50 to-purple-100">
+              <CardContent className="pt-6 pb-6">
+                <div className="flex flex-col items-center text-center space-y-3">
+                  <Users className="h-12 w-12 text-purple-600" />
                   <div>
-                    <p className="text-sm text-gray-600">Total Asignados</p>
-                    <p className="text-2xl font-bold text-purple-700">{students.length}</p>
+                    <p className="text-sm text-gray-600 mb-2 font-medium">Total Asignados</p>
+                    <p className="text-4xl font-bold text-purple-700">{students.length}</p>
                   </div>
-                  <Users className="h-8 w-8 text-purple-600" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-green-200 bg-green-50">
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
+            <Card className="border-emerald-200 bg-gradient-to-br from-green-50 to-green-100">
+              <CardContent className="pt-6 pb-6">
+                <div className="flex flex-col items-center text-center space-y-3">
+                  <CheckCircle2 className="h-12 w-12 text-green-600" />
                   <div>
-                    <p className="text-sm text-gray-600">Han Respondido</p>
-                    <p className="text-2xl font-bold text-green-700">{respondedCount}</p>
+                    <p className="text-sm text-gray-600 mb-2 font-medium">Han Respondido</p>
+                    <p className="text-4xl font-bold text-green-700">{respondedCount}</p>
                   </div>
-                  <CheckCircle2 className="h-8 w-8 text-green-600" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-orange-200 bg-orange-50">
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
+            <Card className="border-emerald-200 bg-gradient-to-br from-orange-50 to-orange-100">
+              <CardContent className="pt-6 pb-6">
+                <div className="flex flex-col items-center text-center space-y-3">
+                  <XCircle className="h-12 w-12 text-orange-600" />
                   <div>
-                    <p className="text-sm text-gray-600">Pendientes</p>
-                    <p className="text-2xl font-bold text-orange-700">{pendingCount}</p>
+                    <p className="text-sm text-gray-600 mb-2 font-medium">Pendientes</p>
+                    <p className="text-4xl font-bold text-orange-700">{pendingCount}</p>
                   </div>
-                  <XCircle className="h-8 w-8 text-orange-600" />
                 </div>
               </CardContent>
             </Card>
           </div>
 
+          <div className="flex items-center justify-between gap-3 text-base bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-700">Tasa de respuesta:</span>
+              <span className="font-bold text-emerald-700 text-xl">{responseRate}%</span>
+            </div>
+            <span className="text-gray-600">
+              Mostrando {filteredStudents.length} de {students.length} estudiantes
+            </span>
+          </div>
+
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             <Input
               type="text"
               placeholder="Buscar por nombre o documento..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-12 h-12 text-base border-2 focus:border-emerald-500"
             />
           </div>
 
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="all">Todos ({students.length})</TabsTrigger>
-              <TabsTrigger value="responded">Respondieron ({respondedCount})</TabsTrigger>
-              <TabsTrigger value="pending">Pendientes ({pendingCount})</TabsTrigger>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+            <TabsList className="grid w-full grid-cols-3 h-12">
+              <TabsTrigger value="all" className="text-base">
+                Todos ({students.length})
+              </TabsTrigger>
+              <TabsTrigger value="responded" className="text-base">
+                Respondieron ({respondedCount})
+              </TabsTrigger>
+              <TabsTrigger value="pending" className="text-base">
+                Pendientes ({pendingCount})
+              </TabsTrigger>
             </TabsList>
 
-            <TabsContent value={activeTab} className="flex-1 mt-4">
+            <TabsContent value={activeTab} className="mt-6">
               {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Cargando estudiantes...</p>
-                  </div>
-                </div>
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <div className="inline-block w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mb-4" />
+                    <p className="text-gray-600 text-lg">Cargando estudiantes...</p>
+                  </CardContent>
+                </Card>
               ) : filteredStudents.length === 0 ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-center">
-                    <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No se encontraron estudiantes</p>
-                  </div>
-                </div>
+                <Card className="border-emerald-200">
+                  <CardContent className="py-16 text-center">
+                    <Users className="mx-auto mb-6 h-16 w-16 text-emerald-400" />
+                    <h3 className="mb-3 text-xl font-semibold text-gray-800">No se encontraron estudiantes</h3>
+                    <p className="text-gray-600 text-base">
+                      No hay estudiantes que coincidan con los criterios de búsqueda
+                    </p>
+                  </CardContent>
+                </Card>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-4">
                   {filteredStudents.map((student) => {
                     const isExpanded = expandedStudents.has(student.documento)
                     return (
-                      <Card
-                        key={student.documento}
-                        className={`border ${
-                          student.hasResponded ? "border-green-200 bg-green-50/50" : "border-orange-200 bg-orange-50/50"
-                        }`}
-                      >
-                        <CardContent className="py-3">
-                          <div className="flex items-center justify-between">
+                      <Card key={student.documento} className="border-emerald-200 hover:shadow-md transition-shadow">
+                        <CardContent className="py-5 px-6">
+                          <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <div className="flex items-center gap-3">
-                                <div
-                                  className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                                    student.hasResponded ? "bg-green-100" : "bg-orange-100"
-                                  }`}
-                                >
-                                  {student.hasResponded ? (
-                                    <CheckCircle2 className="h-5 w-5 text-green-600" />
-                                  ) : (
-                                    <XCircle className="h-5 w-5 text-orange-600" />
-                                  )}
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center">
+                                  <User className="h-6 w-6 text-emerald-600" />
                                 </div>
                                 <div>
-                                  <p className="font-semibold text-gray-800">{student.nombre}</p>
-                                  <div className="flex flex-wrap gap-2 text-xs text-gray-600 mt-1">
-                                    <span className="bg-white px-2 py-0.5 rounded border">
-                                      Doc: {student.documento}
-                                    </span>
+                                  <h4 className="font-semibold text-gray-900 text-xl">{student.nombre}</h4>
+                                  <div className="flex flex-wrap gap-2 text-sm text-gray-600 mt-2">
+                                    <span className="bg-gray-100 px-3 py-1 rounded">Doc: {student.documento}</span>
                                     {student.programa !== "N/A" && (
-                                      <span className="bg-white px-2 py-0.5 rounded border">{student.programa}</span>
+                                      <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded">
+                                        {student.programa}
+                                      </span>
                                     )}
                                     {student.grupo !== "N/A" && (
-                                      <span className="bg-white px-2 py-0.5 rounded border">Grupo {student.grupo}</span>
+                                      <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded">
+                                        Grupo {student.grupo}
+                                      </span>
                                     )}
                                     {student.nivel !== "N/A" && (
-                                      <span className="bg-white px-2 py-0.5 rounded border">Nivel {student.nivel}</span>
+                                      <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded">
+                                        Nivel {student.nivel}
+                                      </span>
                                     )}
                                   </div>
                                 </div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-3">
+                            <div className="flex flex-col items-end gap-3">
                               {student.fechaRespuesta && (
-                                <div className="flex items-center gap-1 text-xs text-gray-500">
-                                  <Calendar className="h-3 w-3" />
+                                <div className="flex items-center gap-2 text-sm text-gray-500">
+                                  <Calendar className="h-4 w-4" />
                                   {new Date(student.fechaRespuesta).toLocaleDateString("es-ES", {
                                     day: "2-digit",
                                     month: "short",
+                                    year: "numeric",
                                     hour: "2-digit",
                                     minute: "2-digit",
                                   })}
                                 </div>
                               )}
-                              <Badge
-                                className={
-                                  student.hasResponded
-                                    ? "bg-green-600 hover:bg-green-700"
-                                    : "bg-orange-600 hover:bg-orange-700"
-                                }
-                              >
-                                {student.hasResponded ? "Respondió" : "Pendiente"}
-                              </Badge>
-                              {student.hasResponded && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => toggleExpanded(student.documento)}
-                                  className="gap-1 border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  className={
+                                    student.hasResponded
+                                      ? "bg-green-600 hover:bg-green-700"
+                                      : "bg-orange-600 hover:bg-orange-700"
+                                  }
                                 >
-                                  {isExpanded ? (
-                                    <>
-                                      <ChevronUp className="h-4 w-4" />
-                                      Ocultar
-                                    </>
-                                  ) : (
-                                    <>
-                                      <ChevronDown className="h-4 w-4" />
-                                      Respuestas
-                                    </>
-                                  )}
-                                </Button>
-                              )}
+                                  {student.hasResponded ? "Respondió" : "Pendiente"}
+                                </Badge>
+                                {student.hasResponded && (
+                                  <Button
+                                    variant="outline"
+                                    size="default"
+                                    onClick={() => toggleExpanded(student.documento)}
+                                    className="gap-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+                                  >
+                                    {isExpanded ? (
+                                      <>
+                                        <ChevronUp className="h-5 w-5" />
+                                        Ocultar
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ChevronDown className="h-5 w-5" />
+                                        Respuestas
+                                      </>
+                                    )}
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                           </div>
 
                           {isExpanded && student.hasResponded && student.respuestas && (
-                            <div className="mt-4 pt-4 border-t border-green-200">
-                              <div className="space-y-3">
+                            <div className="mt-5 pt-5 border-t border-emerald-100">
+                              <div className="space-y-5">
                                 {surveyQuestions.map((question, qIndex) => {
                                   const answer = student.respuestas?.[qIndex]
                                   return (
-                                    <div key={question.id} className="bg-white p-3 rounded-lg border">
-                                      <div className="flex items-start gap-2">
-                                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center font-semibold">
+                                    <div key={question.id} className="bg-gray-50 p-5 rounded-lg">
+                                      <div className="flex items-start gap-3 mb-3">
+                                        <span className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-600 text-white text-sm flex items-center justify-center font-semibold">
                                           {qIndex + 1}
                                         </span>
                                         <div className="flex-1">
-                                          <p className="font-medium text-gray-900 mb-2 text-sm">{question.texto}</p>
+                                          <p className="font-medium text-gray-900 mb-3 text-base">{question.texto}</p>
                                           <div className="ml-0">{renderAnswer(question, answer)}</div>
                                         </div>
                                       </div>
@@ -422,17 +438,6 @@ export function SurveyStudentsDialog({
               )}
             </TabsContent>
           </Tabs>
-        </div>
-
-        <div className="px-6 py-4 border-t bg-gray-50">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-600">
-              Tasa de respuesta: <span className="font-semibold text-emerald-700">{responseRate}%</span>
-            </p>
-            <p className="text-sm text-gray-600">
-              Mostrando {filteredStudents.length} de {students.length} estudiantes
-            </p>
-          </div>
         </div>
       </DialogContent>
     </Dialog>

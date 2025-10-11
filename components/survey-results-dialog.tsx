@@ -117,63 +117,63 @@ export function SurveyResultsDialog({ open, onOpenChange, surveyId, surveyTitle 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-emerald-800 text-2xl flex items-center gap-2">
-            <CheckCircle2 className="h-6 w-6" />
+      <DialogContent className="max-w-[98vw] max-h-[95vh] overflow-y-auto">
+        <DialogHeader className="space-y-3 pb-4">
+          <DialogTitle className="text-emerald-800 text-3xl flex items-center gap-3">
+            <CheckCircle2 className="h-7 w-7" />
             Resultados de la Encuesta
           </DialogTitle>
-          <DialogDescription className="text-base">{surveyTitle}</DialogDescription>
+          <DialogDescription className="text-lg">{surveyTitle}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-sm bg-emerald-50 p-3 rounded-lg border border-emerald-200">
-            <Users className="h-5 w-5 text-emerald-600" />
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 text-base bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+            <Users className="h-6 w-6 text-emerald-600" />
             <span>
-              <strong className="text-emerald-700 text-lg">{responses.length}</strong> estudiantes han respondido esta
+              <strong className="text-emerald-700 text-xl">{responses.length}</strong> estudiantes han respondido esta
               encuesta
             </span>
           </div>
 
           {loading ? (
             <Card>
-              <CardContent className="py-8 text-center">
-                <div className="inline-block w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mb-4" />
-                <p className="text-gray-600">Cargando respuestas...</p>
+              <CardContent className="py-12 text-center">
+                <div className="inline-block w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mb-4" />
+                <p className="text-gray-600 text-lg">Cargando respuestas...</p>
               </CardContent>
             </Card>
           ) : responses.length === 0 ? (
             <Card className="border-emerald-200">
-              <CardContent className="py-12 text-center">
-                <Users className="mx-auto mb-4 h-12 w-12 text-emerald-400" />
-                <h3 className="mb-2 text-lg font-semibold text-gray-800">No hay respuestas aún</h3>
-                <p className="text-gray-600">Ningún estudiante ha completado esta encuesta todavía</p>
+              <CardContent className="py-16 text-center">
+                <Users className="mx-auto mb-6 h-16 w-16 text-emerald-400" />
+                <h3 className="mb-3 text-xl font-semibold text-gray-800">No hay respuestas aún</h3>
+                <p className="text-gray-600 text-base">Ningún estudiante ha completado esta encuesta todavía</p>
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {responses.map((response, index) => {
                 const isExpanded = expandedResponses.has(response.id)
                 return (
                   <Card key={response.id} className="border-emerald-200 hover:shadow-md transition-shadow">
-                    <CardHeader className="pb-3">
+                    <CardHeader className="pb-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                              <User className="h-5 w-5 text-emerald-600" />
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center">
+                              <User className="h-6 w-6 text-emerald-600" />
                             </div>
                             <div>
-                              <h4 className="font-semibold text-gray-900 text-lg">{response.nombreEstudiante}</h4>
-                              <div className="flex flex-wrap gap-2 text-xs text-gray-600 mt-1">
-                                <span className="bg-gray-100 px-2 py-0.5 rounded">Doc: {response.documento}</span>
+                              <h4 className="font-semibold text-gray-900 text-xl">{response.nombreEstudiante}</h4>
+                              <div className="flex flex-wrap gap-2 text-sm text-gray-600 mt-2">
+                                <span className="bg-gray-100 px-3 py-1 rounded">Doc: {response.documento}</span>
                                 {response.grupoEstudiante !== "N/A" && (
-                                  <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                  <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded">
                                     Grupo: {response.grupoEstudiante}
                                   </span>
                                 )}
                                 {response.programaEstudiante !== "N/A" && (
-                                  <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+                                  <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded">
                                     {response.programaEstudiante}
                                   </span>
                                 )}
@@ -181,9 +181,9 @@ export function SurveyResultsDialog({ open, onOpenChange, surveyId, surveyTitle 
                             </div>
                           </div>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <div className="flex items-center gap-1 text-xs text-gray-500">
-                            <Calendar className="h-3 w-3" />
+                        <div className="flex flex-col items-end gap-3">
+                          <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <Calendar className="h-4 w-4" />
                             {new Date(response.fechaRespuesta).toLocaleDateString("es-ES", {
                               day: "2-digit",
                               month: "short",
@@ -194,18 +194,18 @@ export function SurveyResultsDialog({ open, onOpenChange, surveyId, surveyTitle 
                           </div>
                           <Button
                             variant="outline"
-                            size="sm"
+                            size="default"
                             onClick={() => toggleExpanded(response.id)}
-                            className="gap-1 border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+                            className="gap-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50"
                           >
                             {isExpanded ? (
                               <>
-                                <ChevronUp className="h-4 w-4" />
+                                <ChevronUp className="h-5 w-5" />
                                 Ocultar
                               </>
                             ) : (
                               <>
-                                <ChevronDown className="h-4 w-4" />
+                                <ChevronDown className="h-5 w-5" />
                                 Respuestas
                               </>
                             )}
@@ -216,7 +216,7 @@ export function SurveyResultsDialog({ open, onOpenChange, surveyId, surveyTitle 
 
                     {isExpanded && (
                       <CardContent className="pt-0 border-t border-emerald-100">
-                        <div className="space-y-4 mt-4">
+                        <div className="space-y-5 mt-5">
                           {surveyQuestions.map((question, qIndex) => {
                             const answer = response.respuestas?.[qIndex]
                             console.log(
@@ -230,13 +230,13 @@ export function SurveyResultsDialog({ open, onOpenChange, surveyId, surveyTitle 
                               response.respuestas,
                             )
                             return (
-                              <div key={question.id} className="bg-gray-50 p-4 rounded-lg">
-                                <div className="flex items-start gap-2 mb-2">
-                                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center font-semibold">
+                              <div key={question.id} className="bg-gray-50 p-5 rounded-lg">
+                                <div className="flex items-start gap-3 mb-3">
+                                  <span className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-600 text-white text-sm flex items-center justify-center font-semibold">
                                     {qIndex + 1}
                                   </span>
                                   <div className="flex-1">
-                                    <p className="font-medium text-gray-900 mb-2">{question.texto}</p>
+                                    <p className="font-medium text-gray-900 mb-3 text-base">{question.texto}</p>
                                     <div className="ml-0">{renderAnswer(question, answer)}</div>
                                   </div>
                                 </div>

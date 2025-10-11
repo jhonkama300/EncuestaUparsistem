@@ -225,7 +225,7 @@ export function SurveyStudentsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] h-[90vh] flex flex-col p-0">
+      <DialogContent className="max-w-[95vw] h-[90vh] flex flex-col p-1">
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle className="text-2xl text-emerald-800">Estado de Respuestas</DialogTitle>
           <DialogDescription>{surveyTitle}</DialogDescription>
@@ -233,14 +233,14 @@ export function SurveyStudentsDialog({
 
         <div className="px-6 py-4 space-y-4 flex-1 overflow-y-auto">
           <div className="grid grid-cols-3 gap-4">
-            <Card className="border-emerald-200 bg-emerald-50">
+            <Card className="border-purple-200 bg-purple-50">
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Total Asignados</p>
-                    <p className="text-2xl font-bold text-emerald-700">{students.length}</p>
+                    <p className="text-2xl font-bold text-purple-700">{students.length}</p>
                   </div>
-                  <Users className="h-8 w-8 text-emerald-600" />
+                  <Users className="h-8 w-8 text-purple-600" />
                 </div>
               </CardContent>
             </Card>

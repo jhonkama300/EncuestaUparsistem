@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getAllSurveys, getSurveyResponses } from "@/lib/surveys"
+import { getPonentes } from "@/lib/ponentes"
 import {
   BarChart,
   Bar,
@@ -25,7 +26,7 @@ import {
   LineChart,
   Line,
 } from "recharts"
-import { TrendingUp, Users, Award, CheckCircle, BarChart3, Activity, Target } from "lucide-react"
+import { TrendingUp, Users, Award, CheckCircle, BarChart3, Activity, Target, Star } from "lucide-react"
 
 const SCALE_VALUES: Record<string, number> = {
   excelente: 5,
@@ -39,12 +40,14 @@ const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"
 
 export function AdvancedStatisticsView() {
   const [surveys, setSurveys] = useState<any[]>([])
+  const [ponentes, setPonentes] = useState<any[]>([])
   const [selectedSurveyId, setSelectedSurveyId] = useState<string>("")
+  const [selectedPonenteId, setSelectedPonenteId] = useState<string>("all")
   const [responses, setResponses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    loadSurveys()
+    loadData()
   }, [])
 
   useEffect(() => {
@@ -53,16 +56,17 @@ export function AdvancedStatisticsView() {
     }
   }, [selectedSurveyId])
 
-  const loadSurveys = async () => {
+  const loadData = async () => {
     setLoading(true)
     try {
-      const data = await getAllSurveys()
-      setSurveys(data)
-      if (data.length > 0) {
-        setSelectedSurveyId(data[0].id)
+      const [surveysData, ponentesData] = await Promise.all([getAllSurveys(), getPonentes()])
+      setSurveys(surveysData)
+      setPonentes(ponentesData)
+      if (surveysData.length > 0) {
+        setSelectedSurveyId(surveysData[0].id)
       }
     } catch (error) {
-      console.error("[v0] Error cargando encuestas:", error)
+      console.error("[v0] Error cargando datos:", error)
     } finally {
       setLoading(false)
     }
@@ -83,6 +87,13 @@ export function AdvancedStatisticsView() {
   }
 
   const selectedSurvey = surveys.find((s) => s.id === selectedSurveyId)
+
+  const filteredSurveys = useMemo(() => {
+    if (selectedPonenteId === "all") {
+      return surveys
+    }
+    return surveys.filter((survey) => survey.ponenteId === selectedPonenteId)
+  }, [surveys, selectedPonenteId])
 
   const statistics = useMemo(() => {
     if (!selectedSurvey || !selectedSurvey.preguntas || !Array.isArray(responses) || responses.length === 0) {
@@ -124,21 +135,18 @@ export function AdvancedStatisticsView() {
       const mode = Object.entries(frequencies).reduce((a, b) => (b[1] > a[1] ? b : a), ["N/A", 0])[0]
       const average = validResponses > 0 ? sum / validResponses : 0
 
-      // Calcular desviación estándar
       let stdDev = 0
       if (validResponses > 1 && values.length > 0) {
         const variance = values.reduce((acc, val) => acc + Math.pow(val - average, 2), 0) / (validResponses - 1)
         stdDev = Math.sqrt(variance)
       }
 
-      // Determinar consenso
       let consensus = "Medio"
       if (stdDev < 0.5) consensus = "Alto consenso"
       else if (stdDev < 1.0) consensus = "Consenso moderado"
       else if (stdDev < 1.5) consensus = "Opiniones divididas"
       else consensus = "Alta dispersión"
 
-      // Tendencia de satisfacción
       const positiveResponses = Object.entries(frequencies).reduce((acc, [key, count]) => {
         const value = SCALE_VALUES[key.toLowerCase()]
         return value && value >= 4 ? acc + count : acc
@@ -162,7 +170,6 @@ export function AdvancedStatisticsView() {
     const overallAverage =
       validAverages.length > 0 ? validAverages.reduce((acc, stat) => acc + stat.average, 0) / validAverages.length : 0
 
-    // Calcular porcentaje de cumplimiento de expectativas
     const lastQuestion = questions[questions.length - 1]
     let expectationsFulfilled = 0
     if (lastQuestion && lastQuestion.tipo === "si_no") {
@@ -177,7 +184,6 @@ export function AdvancedStatisticsView() {
     const expectationsPercentage =
       responses.length > 0 ? ((expectationsFulfilled / responses.length) * 100).toFixed(1) : "0"
 
-    // Datos para radar chart (comparación entre preguntas)
     const radarData = questionStats
       .filter((stat) => stat.validResponses > 0)
       .slice(0, 6)
@@ -187,7 +193,6 @@ export function AdvancedStatisticsView() {
         fullMark: 5,
       }))
 
-    // Datos para comparación de promedios (gráfico de barras horizontal)
     const comparisonData = questionStats
       .filter((stat) => stat.validResponses > 0)
       .map((stat, index) => ({
@@ -195,7 +200,6 @@ export function AdvancedStatisticsView() {
         promedio: Number(stat.average.toFixed(2)),
       }))
 
-    // Datos para tendencia de satisfacción
     const trendData = questionStats
       .filter((stat) => stat.validResponses > 0)
       .map((stat, index) => ({
@@ -213,6 +217,15 @@ export function AdvancedStatisticsView() {
       trendData,
     }
   }, [selectedSurvey, responses])
+
+  const getQualitativeRating = (score: number) => {
+    if (score >= 4.5) return { text: "Excelente", color: "text-green-600", bg: "bg-green-50" }
+    if (score >= 4.0) return { text: "Muy Bueno", color: "text-blue-600", bg: "bg-blue-50" }
+    if (score >= 3.5) return { text: "Bueno", color: "text-emerald-600", bg: "bg-emerald-50" }
+    if (score >= 3.0) return { text: "Aceptable", color: "text-yellow-600", bg: "bg-yellow-50" }
+    if (score >= 2.0) return { text: "Regular", color: "text-orange-600", bg: "bg-orange-50" }
+    return { text: "Deficiente", color: "text-red-600", bg: "bg-red-50" }
+  }
 
   if (loading && surveys.length === 0) {
     return (
@@ -238,7 +251,7 @@ export function AdvancedStatisticsView() {
 
   return (
     <div className="space-y-6">
-      {/* Selector de Encuesta */}
+      {/* Selector de Encuesta y Ponente */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -247,20 +260,39 @@ export function AdvancedStatisticsView() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Seleccionar Encuesta</label>
-            <Select value={selectedSurveyId} onValueChange={setSelectedSurveyId}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Selecciona una encuesta" />
-              </SelectTrigger>
-              <SelectContent>
-                {surveys.map((survey) => (
-                  <SelectItem key={survey.id} value={survey.id}>
-                    {survey.titulo} ({survey.respuestas || 0} respuestas)
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Filtrar por Ponente</label>
+              <Select value={selectedPonenteId} onValueChange={setSelectedPonenteId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Todos los ponentes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los ponentes</SelectItem>
+                  {ponentes.map((ponente) => (
+                    <SelectItem key={ponente.id} value={ponente.id}>
+                      {ponente.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Seleccionar Encuesta</label>
+              <Select value={selectedSurveyId} onValueChange={setSelectedSurveyId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecciona una encuesta" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredSurveys.map((survey) => (
+                    <SelectItem key={survey.id} value={survey.id}>
+                      {survey.titulo} ({survey.respuestas || 0} respuestas)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -285,6 +317,123 @@ export function AdvancedStatisticsView() {
 
       {!loading && statistics && statistics.totalResponses > 0 && (
         <>
+          <Card className="border-2 border-emerald-500 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-emerald-50 to-blue-50">
+              <CardTitle className="text-xl font-bold flex items-center gap-2">
+                <Star className="h-6 w-6 text-yellow-500 fill-yellow-500" />
+                Calificación General del Evento
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Gauge Visual */}
+                <div className="flex flex-col items-center justify-center">
+                  <div className="relative w-48 h-48">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle cx="96" cy="96" r="80" stroke="#e5e7eb" strokeWidth="16" fill="none" />
+                      <circle
+                        cx="96"
+                        cy="96"
+                        r="80"
+                        stroke="#10b981"
+                        strokeWidth="16"
+                        fill="none"
+                        strokeDasharray={`${(Number.parseFloat(statistics.overallAverage) / 5) * 502.4} 502.4`}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <div className="text-5xl font-bold text-emerald-600">{statistics.overallAverage}</div>
+                      <div className="text-sm text-gray-500">de 5.0</div>
+                    </div>
+                  </div>
+                  <div
+                    className={`mt-4 px-4 py-2 rounded-full ${getQualitativeRating(Number.parseFloat(statistics.overallAverage)).bg}`}
+                  >
+                    <span
+                      className={`text-lg font-semibold ${getQualitativeRating(Number.parseFloat(statistics.overallAverage)).color}`}
+                    >
+                      {getQualitativeRating(Number.parseFloat(statistics.overallAverage)).text}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Métricas Clave */}
+                <div className="col-span-2 grid grid-cols-2 gap-4">
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 bg-blue-500 rounded-lg">
+                        <TrendingUp className="h-5 w-5 text-white" />
+                      </div>
+                      <div className="text-sm font-medium text-blue-700">Porcentaje de Satisfacción</div>
+                    </div>
+                    <div className="text-4xl font-bold text-blue-900">
+                      {((Number.parseFloat(statistics.overallAverage) / 5) * 100).toFixed(0)}%
+                    </div>
+                    <div className="text-xs text-blue-600 mt-1">Basado en promedio general</div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 bg-green-500 rounded-lg">
+                        <CheckCircle className="h-5 w-5 text-white" />
+                      </div>
+                      <div className="text-sm font-medium text-green-700">Expectativas Cumplidas</div>
+                    </div>
+                    <div className="text-4xl font-bold text-green-900">{statistics.expectationsPercentage}%</div>
+                    <div className="text-xs text-green-600 mt-1">De los asistentes</div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 bg-purple-500 rounded-lg">
+                        <Users className="h-5 w-5 text-white" />
+                      </div>
+                      <div className="text-sm font-medium text-purple-700">Total de Respuestas</div>
+                    </div>
+                    <div className="text-4xl font-bold text-purple-900">{statistics.totalResponses}</div>
+                    <div className="text-xs text-purple-600 mt-1">Participantes evaluados</div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-xl">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 bg-orange-500 rounded-lg">
+                        <Award className="h-5 w-5 text-white" />
+                      </div>
+                      <div className="text-sm font-medium text-orange-700">Nivel de Calidad</div>
+                    </div>
+                    <div className="text-4xl font-bold text-orange-900">
+                      {statistics.questionStats.filter((s: any) => s.average >= 4).length}
+                    </div>
+                    <div className="text-xs text-orange-600 mt-1">
+                      De {statistics.questionStats.length} aspectos evaluados
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Interpretación */}
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <h4 className="font-semibold text-gray-800 mb-2">Interpretación de Resultados</h4>
+                <p className="text-sm text-gray-600">
+                  {Number.parseFloat(statistics.overallAverage) >= 4.5 &&
+                    "El evento ha sido evaluado de manera excepcional. Los asistentes muestran un alto nivel de satisfacción en todos los aspectos evaluados."}
+                  {Number.parseFloat(statistics.overallAverage) >= 4.0 &&
+                    Number.parseFloat(statistics.overallAverage) < 4.5 &&
+                    "El evento ha recibido una evaluación muy positiva. La mayoría de los aspectos han cumplido o superado las expectativas de los asistentes."}
+                  {Number.parseFloat(statistics.overallAverage) >= 3.5 &&
+                    Number.parseFloat(statistics.overallAverage) < 4.0 &&
+                    "El evento ha sido bien recibido en general. Existen oportunidades de mejora en algunos aspectos específicos."}
+                  {Number.parseFloat(statistics.overallAverage) >= 3.0 &&
+                    Number.parseFloat(statistics.overallAverage) < 3.5 &&
+                    "El evento ha cumplido con un nivel aceptable. Se recomienda revisar los aspectos con menor valoración para futuras mejoras."}
+                  {Number.parseFloat(statistics.overallAverage) < 3.0 &&
+                    "El evento requiere atención en varios aspectos. Se recomienda un análisis detallado de las áreas con menor valoración."}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Resumen General */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>

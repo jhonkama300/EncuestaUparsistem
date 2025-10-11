@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Users, Search, X, CheckCircle2, AlertCircle } from "lucide-react"
+import { Users, Search, CheckCircle2, AlertCircle } from "lucide-react"
 import {
   getUniqueStudentValues,
   getStudentsByFilters,
@@ -27,23 +27,16 @@ export function AssignStudentsToGroupDialog({ open, onOpenChange, onSuccess }: A
   const [grupoSeleccionado, setGrupoSeleccionado] = useState("")
   const [nuevoGrupoNombre, setNuevoGrupoNombre] = useState("")
 
-  // Filtros
-  const [filterJornada, setFilterJornada] = useState("")
+  const [filterGrupo, setFilterGrupo] = useState("")
   const [filterPrograma, setFilterPrograma] = useState("")
-  const [filterPeriodo, setFilterPeriodo] = useState("")
-  const [filterNivel, setFilterNivel] = useState("")
 
-  // Búsqueda individual
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedStudents, setSelectedStudents] = useState<any[]>([])
 
   // Datos
   const [uniqueValues, setUniqueValues] = useState<any>({
     grupos: [],
-    jornadas: [],
     programas: [],
-    periodos: [],
-    niveles: [],
   })
   const [filteredStudents, setFilteredStudents] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -52,30 +45,43 @@ export function AssignStudentsToGroupDialog({ open, onOpenChange, onSuccess }: A
   useEffect(() => {
     if (open) {
       loadUniqueValues()
+      loadAllStudents()
     }
   }, [open])
 
   useEffect(() => {
-    if (filterJornada || filterPrograma || filterPeriodo || filterNivel) {
-      loadFilteredStudents()
-    } else {
-      setFilteredStudents([])
-    }
-  }, [filterJornada, filterPrograma, filterPeriodo, filterNivel])
+    applyFilters()
+  }, [filterGrupo, filterPrograma, searchTerm])
 
   const loadUniqueValues = async () => {
     const values = await getUniqueStudentValues()
-    setUniqueValues(values)
+    setUniqueValues({
+      grupos: values.grupos || [],
+      programas: values.programas || [],
+    })
   }
 
-  const loadFilteredStudents = async () => {
-    const filters: any = {}
-    if (filterJornada) filters.jornada = filterJornada
-    if (filterPrograma) filters.programa = filterPrograma
-    if (filterPeriodo) filters.periodo = filterPeriodo
-    if (filterNivel) filters.nivel = filterNivel
+  const loadAllStudents = async () => {
+    const students = await getStudentsByFilters({})
+    setFilteredStudents(students)
+  }
 
-    const students = await getStudentsByFilters(filters)
+  const applyFilters = async () => {
+    const filters: any = {}
+    if (filterGrupo && filterGrupo !== "__all__") filters.grupo = filterGrupo
+    if (filterPrograma && filterPrograma !== "__all__") filters.programa = filterPrograma
+
+    let students = await getStudentsByFilters(filters)
+
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim()
+      students = students.filter((s: any) => {
+        const fullName =
+          `${s.primerNombre} ${s.segundoNombre || ""} ${s.primerApellido} ${s.segundoApellido || ""}`.toLowerCase()
+        return fullName.includes(searchLower) || s.documento.includes(searchTerm)
+      })
+    }
+
     setFilteredStudents(students)
   }
 
@@ -90,7 +96,7 @@ export function AssignStudentsToGroupDialog({ open, onOpenChange, onSuccess }: A
       return
     }
 
-    if (selectedStudents.length === 0 && !filterJornada && !filterPrograma && !filterPeriodo && !filterNivel) {
+    if (selectedStudents.length === 0 && !filterGrupo && !filterPrograma) {
       alert("Por favor selecciona estudiantes o aplica filtros")
       return
     }
@@ -102,18 +108,14 @@ export function AssignStudentsToGroupDialog({ open, onOpenChange, onSuccess }: A
       const grupoDestino = mode === "existing" ? grupoSeleccionado : nuevoGrupoNombre.trim()
 
       if (selectedStudents.length > 0) {
-        // Asignar estudiantes seleccionados individualmente
         const documentos = selectedStudents.map((s) => s.documento)
         const res = await assignMultipleStudentsToGroup(documentos, grupoDestino)
         setResult(res)
       } else {
-        // Asignar todos los estudiantes que coincidan con los filtros
         if (mode === "new") {
           const filters: any = {}
-          if (filterJornada) filters.jornada = filterJornada
-          if (filterPrograma) filters.programa = filterPrograma
-          if (filterPeriodo) filters.periodo = filterPeriodo
-          if (filterNivel) filters.nivel = filterNivel
+          if (filterGrupo && filterGrupo !== "__all__") filters.grupo = filterGrupo
+          if (filterPrograma && filterPrograma !== "__all__") filters.programa = filterPrograma
 
           const count = await createNewGroup(grupoDestino, filters)
           setResult({ success: count, errors: [] })
@@ -137,29 +139,26 @@ export function AssignStudentsToGroupDialog({ open, onOpenChange, onSuccess }: A
     setMode("existing")
     setGrupoSeleccionado("")
     setNuevoGrupoNombre("")
-    setFilterJornada("")
+    setFilterGrupo("")
     setFilterPrograma("")
-    setFilterPeriodo("")
-    setFilterNivel("")
     setSearchTerm("")
     setSelectedStudents([])
-    setFilteredStudents([])
     setResult(null)
+    loadAllStudents()
   }
 
-  const addStudent = (student: any) => {
-    if (!selectedStudents.find((s) => s.documento === student.documento)) {
+  const toggleStudent = (student: any) => {
+    const exists = selectedStudents.find((s) => s.documento === student.documento)
+    if (exists) {
+      setSelectedStudents(selectedStudents.filter((s) => s.documento !== student.documento))
+    } else {
       setSelectedStudents([...selectedStudents, student])
     }
   }
 
-  const removeStudent = (documento: string) => {
-    setSelectedStudents(selectedStudents.filter((s) => s.documento !== documento))
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-2xl">
             <Users className="h-6 w-6 text-emerald-600" />
@@ -168,7 +167,7 @@ export function AssignStudentsToGroupDialog({ open, onOpenChange, onSuccess }: A
           <DialogDescription>Asigna estudiantes a un grupo existente o crea un nuevo grupo</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="flex-1 overflow-y-auto space-y-6 pr-2">
           {/* Modo de asignación */}
           <div className="space-y-2">
             <Label>Modo de Asignación</Label>
@@ -218,21 +217,20 @@ export function AssignStudentsToGroupDialog({ open, onOpenChange, onSuccess }: A
             </div>
           )}
 
-          {/* Filtros */}
           <div className="space-y-3">
-            <Label className="text-base font-semibold">Filtros de Estudiantes</Label>
+            <Label className="text-base font-semibold">Filtros</Label>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label className="text-sm">Jornada</Label>
-                <Select value={filterJornada} onValueChange={setFilterJornada}>
+                <Label className="text-sm">Grupo</Label>
+                <Select value={filterGrupo} onValueChange={setFilterGrupo}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Todas" />
+                    <SelectValue placeholder="Todos los grupos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">Todas</SelectItem>
-                    {uniqueValues.jornadas.map((j: string) => (
-                      <SelectItem key={j} value={j}>
-                        {j}
+                    <SelectItem value="__all__">Todos los grupos</SelectItem>
+                    {uniqueValues.grupos.map((g: string) => (
+                      <SelectItem key={g} value={g}>
+                        {g}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -243,10 +241,10 @@ export function AssignStudentsToGroupDialog({ open, onOpenChange, onSuccess }: A
                 <Label className="text-sm">Programa</Label>
                 <Select value={filterPrograma} onValueChange={setFilterPrograma}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Todos" />
+                    <SelectValue placeholder="Todos los programas" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">Todos</SelectItem>
+                    <SelectItem value="__all__">Todos los programas</SelectItem>
                     {uniqueValues.programas.map((p: string) => (
                       <SelectItem key={p} value={p}>
                         {p}
@@ -255,111 +253,72 @@ export function AssignStudentsToGroupDialog({ open, onOpenChange, onSuccess }: A
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm">Período</Label>
-                <Select value={filterPeriodo} onValueChange={setFilterPeriodo}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__all__">Todos</SelectItem>
-                    {uniqueValues.periodos.map((p: string) => (
-                      <SelectItem key={p} value={p}>
-                        {p}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm">Nivel</Label>
-                <Select value={filterNivel} onValueChange={setFilterNivel}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__all__">Todos</SelectItem>
-                    {uniqueValues.niveles.map((n: string) => (
-                      <SelectItem key={n} value={n}>
-                        {n}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
-
-            {filteredStudents.length > 0 && (
-              <Alert>
-                <AlertDescription>
-                  <strong>{filteredStudents.length}</strong> estudiantes coinciden con los filtros seleccionados
-                </AlertDescription>
-              </Alert>
-            )}
           </div>
 
-          {/* Búsqueda individual */}
           <div className="space-y-2">
-            <Label>Búsqueda Individual (Opcional)</Label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Buscar por documento o nombre..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+            <Label>Buscar Estudiante</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Buscar por nombre completo o identificación..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
-
-            {searchTerm && filteredStudents.length > 0 && (
-              <div className="border rounded-lg p-2 max-h-40 overflow-y-auto space-y-1">
-                {filteredStudents
-                  .filter((s: any) => {
-                    const searchLower = searchTerm.toLowerCase()
-                    const fullName =
-                      `${s.primerNombre} ${s.segundoNombre || ""} ${s.primerApellido} ${s.segundoApellido || ""}`.toLowerCase()
-                    return fullName.includes(searchLower) || s.documento.includes(searchLower)
-                  })
-                  .slice(0, 10)
-                  .map((student: any) => (
-                    <div
-                      key={student.documento}
-                      className="flex items-center justify-between p-2 hover:bg-gray-50 rounded cursor-pointer"
-                      onClick={() => addStudent(student)}
-                    >
-                      <div className="text-sm">
-                        <span className="font-medium">
-                          {student.primerNombre} {student.primerApellido}
-                        </span>
-                        <span className="text-gray-500 ml-2">({student.documento})</span>
-                      </div>
-                      <Button size="sm" variant="ghost">
-                        Agregar
-                      </Button>
-                    </div>
-                  ))}
-              </div>
-            )}
           </div>
 
-          {/* Estudiantes seleccionados */}
-          {selectedStudents.length > 0 && (
+          {filteredStudents.length > 0 && (
             <div className="space-y-2">
-              <Label>Estudiantes Seleccionados ({selectedStudents.length})</Label>
-              <div className="flex flex-wrap gap-2">
-                {selectedStudents.map((student) => (
-                  <Badge key={student.documento} variant="secondary" className="flex items-center gap-1">
-                    {student.primerNombre} {student.primerApellido}
-                    <X
-                      className="h-3 w-3 cursor-pointer hover:text-red-600"
-                      onClick={() => removeStudent(student.documento)}
-                    />
-                  </Badge>
-                ))}
+              <div className="flex items-center justify-between">
+                <Label>Estudiantes ({filteredStudents.length})</Label>
+                {selectedStudents.length > 0 && (
+                  <Badge variant="secondary">{selectedStudents.length} seleccionados</Badge>
+                )}
+              </div>
+              <div className="border rounded-lg overflow-hidden">
+                <div className="max-h-96 overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Seleccionar</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Identificación</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Nombre Completo</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Grupo Actual</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-700 border-b">Programa</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredStudents.map((student: any) => {
+                        const isSelected = selectedStudents.find((s) => s.documento === student.documento)
+                        return (
+                          <tr
+                            key={student.documento}
+                            className={`hover:bg-gray-50 cursor-pointer ${isSelected ? "bg-emerald-50" : ""}`}
+                            onClick={() => toggleStudent(student)}
+                          >
+                            <td className="px-4 py-3 border-b">
+                              <input
+                                type="checkbox"
+                                checked={!!isSelected}
+                                onChange={() => toggleStudent(student)}
+                                className="h-4 w-4 text-emerald-600 rounded"
+                              />
+                            </td>
+                            <td className="px-4 py-3 border-b font-medium">{student.documento}</td>
+                            <td className="px-4 py-3 border-b">
+                              {student.primerNombre} {student.segundoNombre || ""} {student.primerApellido}{" "}
+                              {student.segundoApellido || ""}
+                            </td>
+                            <td className="px-4 py-3 border-b text-gray-600">{student.grupo || "Sin grupo"}</td>
+                            <td className="px-4 py-3 border-b text-gray-600">{student.programa}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
@@ -384,19 +343,19 @@ export function AssignStudentsToGroupDialog({ open, onOpenChange, onSuccess }: A
               </AlertDescription>
             </Alert>
           )}
+        </div>
 
-          {/* Acciones */}
-          <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={handleReset}>
-              Limpiar
-            </Button>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleAssign} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700">
-              {loading ? "Asignando..." : "Asignar al Grupo"}
-            </Button>
-          </div>
+        {/* Acciones */}
+        <div className="flex gap-2 justify-end pt-4 border-t">
+          <Button variant="outline" onClick={handleReset}>
+            Limpiar
+          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={handleAssign} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700">
+            {loading ? "Asignando..." : "Asignar al Grupo"}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

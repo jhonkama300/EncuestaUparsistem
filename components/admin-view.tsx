@@ -2,11 +2,12 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { LogOut, FileSpreadsheet, Upload, Users, BarChart3 } from "lucide-react"
+import { LogOut, FileSpreadsheet, Upload, Users } from "lucide-react"
 import type { UserData } from "@/lib/auth"
 import { SurveyManager } from "./survey-manager"
 import { StudentUploader } from "./student-uploader"
 import { PonenteUploader } from "./ponente-uploader"
+import Image from "next/image"
 
 interface AdminViewProps {
   user: UserData
@@ -23,8 +24,8 @@ export function AdminView({ user, onLogout }: AdminViewProps) {
           <div className="flex items-center justify-between">
             <div className="text-white">
               <div className="flex items-center gap-3 mb-1">
-                <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  <BarChart3 className="h-6 w-6" />
+                <div className="h-12 w-12 relative">
+                  <Image src="/images/logoupar.png" alt="Logo Uparsistem" fill className="object-contain" />
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold">UPARSISTEM</h1>

@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { CheckCircle2, XCircle, Search, Users, ChevronDown, ChevronUp, Calendar, User } from "lucide-react"
+import { CheckCircle2, XCircle, Search, Users, ChevronDown, ChevronUp, Calendar, User, X } from "lucide-react"
 import { collection, getDocs, query, where } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -67,11 +67,9 @@ export function SurveyStudentsDialog({
     try {
       console.log("[v0] Cargando estado de estudiantes para encuesta:", surveyId)
 
-      // Get all students assigned to this survey
       const estudiantesRef = collection(db, "estudiantes")
       const estudiantesSnapshot = await getDocs(estudiantesRef)
 
-      // Get all responses for this survey
       const respuestasRef = collection(db, "respuestas")
       const qRespuestas = query(respuestasRef, where("encuestaId", "==", surveyId))
       const respuestasSnapshot = await getDocs(qRespuestas)
@@ -87,7 +85,6 @@ export function SurveyStudentsDialog({
 
       console.log("[v0] Documentos que respondieron:", Array.from(respuestasPorDocumento.keys()))
 
-      // Filter students based on survey assignment
       const asignacion = surveyData.asignacion || {}
       const assignedStudents: StudentStatus[] = []
 
@@ -95,12 +92,10 @@ export function SurveyStudentsDialog({
         const estudiante = doc.data()
         let isAssigned = false
 
-        // Check if student is individually assigned
         if (asignacion.estudiantesIndividuales?.includes(estudiante.documento)) {
           isAssigned = true
         }
 
-        // Check if student matches group criteria
         if (asignacion.grupos && asignacion.grupos.length > 0) {
           isAssigned = asignacion.grupos.some((grupo: any) => {
             return (
@@ -225,219 +220,230 @@ export function SurveyStudentsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[98vw] max-h-[95vh] overflow-y-auto">
-        <DialogHeader className="space-y-3 pb-4">
-          <DialogTitle className="text-emerald-800 text-3xl flex items-center gap-3">
-            <Users className="h-7 w-7" />
+      <DialogContent className="max-h-[95vh] w-[95vw] max-w-[95vw] sm:w-[90vw] sm:max-w-[90vw] lg:w-[85vw] lg:max-w-6xl xl:max-w-7xl flex flex-col p-0 overflow-hidden">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onOpenChange(false)}
+          className="absolute right-4 top-4 z-50 h-10 w-10 rounded-full bg-white/90 hover:bg-white shadow-lg border border-gray-200 text-gray-700 hover:text-gray-900"
+        >
+          <X className="h-5 w-5" />
+        </Button>
+
+        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-4 bg-gradient-to-r from-emerald-600 to-green-600 text-white sticky top-0 z-20">
+          <DialogTitle className="text-xl sm:text-2xl font-bold flex items-center gap-2 pr-12">
+            <Users className="h-5 w-5 sm:h-6 sm:w-6" />
             Estado de Respuestas
           </DialogTitle>
-          <DialogDescription className="text-lg">{surveyTitle}</DialogDescription>
+          <DialogDescription className="text-emerald-50 text-sm">{surveyTitle}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          <div className="grid grid-cols-3 gap-4">
-            <Card className="border-emerald-200 bg-gradient-to-br from-purple-50 to-purple-100">
-              <CardContent className="pt-6 pb-6">
-                <div className="flex flex-col items-center text-center space-y-3">
-                  <Users className="h-12 w-12 text-purple-600" />
-                  <div>
-                    <p className="text-sm text-gray-600 mb-2 font-medium">Total Asignados</p>
-                    <p className="text-4xl font-bold text-purple-700">{students.length}</p>
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6">
+          <div className="space-y-6">
+            <div className="grid grid-cols-3 gap-4">
+              <Card className="border-emerald-200 bg-gradient-to-br from-purple-50 to-purple-100">
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex flex-col items-center text-center space-y-2">
+                    <Users className="h-8 w-8 text-purple-600" />
+                    <div>
+                      <p className="text-xs text-gray-600 mb-1 font-medium">Total Asignados</p>
+                      <p className="text-3xl font-bold text-purple-700">{students.length}</p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="border-emerald-200 bg-gradient-to-br from-green-50 to-green-100">
-              <CardContent className="pt-6 pb-6">
-                <div className="flex flex-col items-center text-center space-y-3">
-                  <CheckCircle2 className="h-12 w-12 text-green-600" />
-                  <div>
-                    <p className="text-sm text-gray-600 mb-2 font-medium">Han Respondido</p>
-                    <p className="text-4xl font-bold text-green-700">{respondedCount}</p>
+              <Card className="border-emerald-200 bg-gradient-to-br from-green-50 to-green-100">
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex flex-col items-center text-center space-y-2">
+                    <CheckCircle2 className="h-8 w-8 text-green-600" />
+                    <div>
+                      <p className="text-xs text-gray-600 mb-1 font-medium">Han Respondido</p>
+                      <p className="text-3xl font-bold text-green-700">{respondedCount}</p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="border-emerald-200 bg-gradient-to-br from-orange-50 to-orange-100">
-              <CardContent className="pt-6 pb-6">
-                <div className="flex flex-col items-center text-center space-y-3">
-                  <XCircle className="h-12 w-12 text-orange-600" />
-                  <div>
-                    <p className="text-sm text-gray-600 mb-2 font-medium">Pendientes</p>
-                    <p className="text-4xl font-bold text-orange-700">{pendingCount}</p>
+              <Card className="border-emerald-200 bg-gradient-to-br from-orange-50 to-orange-100">
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex flex-col items-center text-center space-y-2">
+                    <XCircle className="h-8 w-8 text-orange-600" />
+                    <div>
+                      <p className="text-xs text-gray-600 mb-1 font-medium">Pendientes</p>
+                      <p className="text-3xl font-bold text-orange-700">{pendingCount}</p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 text-base bg-emerald-50 p-4 rounded-lg border border-emerald-200">
-            <div className="flex items-center gap-2">
-              <span className="text-gray-700">Tasa de respuesta:</span>
-              <span className="font-bold text-emerald-700 text-xl">{responseRate}%</span>
+                </CardContent>
+              </Card>
             </div>
-            <span className="text-gray-600">
-              Mostrando {filteredStudents.length} de {students.length} estudiantes
-            </span>
-          </div>
 
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Buscar por nombre o documento..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 h-12 text-base border-2 focus:border-emerald-500"
-            />
-          </div>
+            <div className="flex items-center justify-between gap-3 text-sm bg-emerald-50 p-3 rounded-lg border border-emerald-200">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-700">Tasa de respuesta:</span>
+                <span className="font-bold text-emerald-700 text-lg">{responseRate}%</span>
+              </div>
+              <span className="text-gray-600">
+                Mostrando {filteredStudents.length} de {students.length} estudiantes
+              </span>
+            </div>
 
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-            <TabsList className="grid w-full grid-cols-3 h-12">
-              <TabsTrigger value="all" className="text-base">
-                Todos ({students.length})
-              </TabsTrigger>
-              <TabsTrigger value="responded" className="text-base">
-                Respondieron ({respondedCount})
-              </TabsTrigger>
-              <TabsTrigger value="pending" className="text-base">
-                Pendientes ({pendingCount})
-              </TabsTrigger>
-            </TabsList>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Buscar por nombre o documento..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 h-10 text-sm border-2 focus:border-emerald-500"
+              />
+            </div>
 
-            <TabsContent value={activeTab} className="mt-6">
-              {loading ? (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <div className="inline-block w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mb-4" />
-                    <p className="text-gray-600 text-lg">Cargando estudiantes...</p>
-                  </CardContent>
-                </Card>
-              ) : filteredStudents.length === 0 ? (
-                <Card className="border-emerald-200">
-                  <CardContent className="py-16 text-center">
-                    <Users className="mx-auto mb-6 h-16 w-16 text-emerald-400" />
-                    <h3 className="mb-3 text-xl font-semibold text-gray-800">No se encontraron estudiantes</h3>
-                    <p className="text-gray-600 text-base">
-                      No hay estudiantes que coincidan con los criterios de búsqueda
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {filteredStudents.map((student) => {
-                    const isExpanded = expandedStudents.has(student.documento)
-                    return (
-                      <Card key={student.documento} className="border-emerald-200 hover:shadow-md transition-shadow">
-                        <CardContent className="py-5 px-6">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center">
-                                  <User className="h-6 w-6 text-emerald-600" />
-                                </div>
-                                <div>
-                                  <h4 className="font-semibold text-gray-900 text-xl">{student.nombre}</h4>
-                                  <div className="flex flex-wrap gap-2 text-sm text-gray-600 mt-2">
-                                    <span className="bg-gray-100 px-3 py-1 rounded">Doc: {student.documento}</span>
-                                    {student.programa !== "N/A" && (
-                                      <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded">
-                                        {student.programa}
-                                      </span>
-                                    )}
-                                    {student.grupo !== "N/A" && (
-                                      <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded">
-                                        Grupo {student.grupo}
-                                      </span>
-                                    )}
-                                    {student.nivel !== "N/A" && (
-                                      <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded">
-                                        Nivel {student.nivel}
-                                      </span>
-                                    )}
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+              <TabsList className="grid w-full grid-cols-3 h-10">
+                <TabsTrigger value="all" className="text-sm">
+                  Todos ({students.length})
+                </TabsTrigger>
+                <TabsTrigger value="responded" className="text-sm">
+                  Respondieron ({respondedCount})
+                </TabsTrigger>
+                <TabsTrigger value="pending" className="text-sm">
+                  Pendientes ({pendingCount})
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value={activeTab} className="mt-4">
+                {loading ? (
+                  <Card>
+                    <CardContent className="py-8 text-center">
+                      <div className="inline-block w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mb-3" />
+                      <p className="text-gray-600 text-sm">Cargando estudiantes...</p>
+                    </CardContent>
+                  </Card>
+                ) : filteredStudents.length === 0 ? (
+                  <Card className="border-emerald-200">
+                    <CardContent className="py-12 text-center">
+                      <Users className="mx-auto mb-4 h-12 w-12 text-emerald-400" />
+                      <h3 className="mb-2 text-lg font-semibold text-gray-800">No se encontraron estudiantes</h3>
+                      <p className="text-gray-600 text-sm">
+                        No hay estudiantes que coincidan con los criterios de búsqueda
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-3">
+                    {filteredStudents.map((student) => {
+                      const isExpanded = expandedStudents.has(student.documento)
+                      return (
+                        <Card key={student.documento} className="border-emerald-200 hover:shadow-md transition-shadow">
+                          <CardContent className="py-4 px-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                                    <User className="h-5 w-5 text-emerald-600" />
+                                  </div>
+                                  <div>
+                                    <h4 className="font-semibold text-gray-900 text-base">{student.nombre}</h4>
+                                    <div className="flex flex-wrap gap-1.5 text-xs text-gray-600 mt-1">
+                                      <span className="bg-gray-100 px-2 py-0.5 rounded">Doc: {student.documento}</span>
+                                      {student.programa !== "N/A" && (
+                                        <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+                                          {student.programa}
+                                        </span>
+                                      )}
+                                      {student.grupo !== "N/A" && (
+                                        <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                          Grupo {student.grupo}
+                                        </span>
+                                      )}
+                                      {student.nivel !== "N/A" && (
+                                        <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">
+                                          {student.nivel}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                            <div className="flex flex-col items-end gap-3">
-                              {student.fechaRespuesta && (
-                                <div className="flex items-center gap-2 text-sm text-gray-500">
-                                  <Calendar className="h-4 w-4" />
-                                  {new Date(student.fechaRespuesta).toLocaleDateString("es-ES", {
-                                    day: "2-digit",
-                                    month: "short",
-                                    year: "numeric",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
-                                </div>
-                              )}
-                              <div className="flex items-center gap-2">
-                                <Badge
-                                  className={
-                                    student.hasResponded
-                                      ? "bg-green-600 hover:bg-green-700"
-                                      : "bg-orange-600 hover:bg-orange-700"
-                                  }
-                                >
-                                  {student.hasResponded ? "Respondió" : "Pendiente"}
-                                </Badge>
-                                {student.hasResponded && (
-                                  <Button
-                                    variant="outline"
-                                    size="default"
-                                    onClick={() => toggleExpanded(student.documento)}
-                                    className="gap-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50"
-                                  >
-                                    {isExpanded ? (
-                                      <>
-                                        <ChevronUp className="h-5 w-5" />
-                                        Ocultar
-                                      </>
-                                    ) : (
-                                      <>
-                                        <ChevronDown className="h-5 w-5" />
-                                        Respuestas
-                                      </>
-                                    )}
-                                  </Button>
+                              <div className="flex flex-col items-end gap-2">
+                                {student.fechaRespuesta && (
+                                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                    <Calendar className="h-3 w-3" />
+                                    {new Date(student.fechaRespuesta).toLocaleDateString("es-ES", {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "numeric",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </div>
                                 )}
+                                <div className="flex items-center gap-2">
+                                  <Badge
+                                    className={
+                                      student.hasResponded
+                                        ? "bg-green-600 hover:bg-green-700"
+                                        : "bg-orange-600 hover:bg-orange-700"
+                                    }
+                                  >
+                                    {student.hasResponded ? "Respondió" : "Pendiente"}
+                                  </Badge>
+                                  {student.hasResponded && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => toggleExpanded(student.documento)}
+                                      className="gap-1.5 border-emerald-600 text-emerald-700 hover:bg-emerald-50 h-8"
+                                    >
+                                      {isExpanded ? (
+                                        <>
+                                          <ChevronUp className="h-4 w-4" />
+                                          Ocultar
+                                        </>
+                                      ) : (
+                                        <>
+                                          <ChevronDown className="h-4 w-4" />
+                                          Ver
+                                        </>
+                                      )}
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
 
-                          {isExpanded && student.hasResponded && student.respuestas && (
-                            <div className="mt-5 pt-5 border-t border-emerald-100">
-                              <div className="space-y-5">
-                                {surveyQuestions.map((question, qIndex) => {
-                                  const answer = student.respuestas?.[qIndex]
-                                  return (
-                                    <div key={question.id} className="bg-gray-50 p-5 rounded-lg">
-                                      <div className="flex items-start gap-3 mb-3">
-                                        <span className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-600 text-white text-sm flex items-center justify-center font-semibold">
-                                          {qIndex + 1}
-                                        </span>
-                                        <div className="flex-1">
-                                          <p className="font-medium text-gray-900 mb-3 text-base">{question.texto}</p>
-                                          <div className="ml-0">{renderAnswer(question, answer)}</div>
+                            {isExpanded && student.hasResponded && student.respuestas && (
+                              <div className="mt-4 pt-4 border-t border-emerald-100">
+                                <div className="space-y-3">
+                                  {surveyQuestions.map((question, qIndex) => {
+                                    const answer = student.respuestas?.[qIndex]
+                                    return (
+                                      <div key={question.id} className="bg-gray-50 p-3 rounded-lg">
+                                        <div className="flex items-start gap-2 mb-2">
+                                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center font-semibold">
+                                            {qIndex + 1}
+                                          </span>
+                                          <div className="flex-1">
+                                            <p className="font-medium text-gray-900 mb-2 text-sm">{question.texto}</p>
+                                            <div className="ml-0">{renderAnswer(question, answer)}</div>
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  )
-                                })}
+                                    )
+                                  })}
+                                </div>
                               </div>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    )
-                  })}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

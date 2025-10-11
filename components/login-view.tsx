@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { getUserDataByDocument, type UserData } from "@/lib/auth"
-import { GraduationCap, Lock, User } from "lucide-react"
+import { Lock, User } from "lucide-react"
+import Image from "next/image"
 
 interface LoginViewProps {
   onLoginStudent: (documentNumber: string) => Promise<UserData>
@@ -26,7 +27,6 @@ export function LoginView({ onLoginStudent, onLoginAdmin }: LoginViewProps) {
     e.preventDefault()
 
     if (isSubmittingRef.current || loading) {
-      console.log("[v0] Envío bloqueado - ya está en proceso")
       return
     }
 
@@ -49,9 +49,7 @@ export function LoginView({ onLoginStudent, onLoginAdmin }: LoginViewProps) {
     }
 
     try {
-      console.log("[v0] Buscando usuario con documento:", documentNumber)
       const userData = await getUserDataByDocument(documentNumber)
-      console.log("[v0] Usuario encontrado:", userData)
 
       if (!userData) {
         setError("Número de documento no registrado en la base de datos")
@@ -61,13 +59,9 @@ export function LoginView({ onLoginStudent, onLoginAdmin }: LoginViewProps) {
       }
 
       if (userData.rol === "estudiante") {
-        console.log("[v0] Estudiante detectado - iniciando login con un clic")
         try {
           await onLoginStudent(documentNumber)
-          console.log("[v0] Login estudiante exitoso")
-          // Mantener loading=true hasta que se desmonte el componente
         } catch (err: any) {
-          console.error("[v0] Error en login estudiante:", err)
           setError(err.message || "Error al iniciar sesión")
           setLoading(false)
           isSubmittingRef.current = false
@@ -77,15 +71,12 @@ export function LoginView({ onLoginStudent, onLoginAdmin }: LoginViewProps) {
 
       if (userData.rol === "admin") {
         if (!isAdmin) {
-          // Primera vez - mostrar campo de contraseña
-          console.log("[v0] Admin detectado - mostrando campo de contraseña")
           setIsAdmin(true)
           setLoading(false)
           isSubmittingRef.current = false
           return
         }
 
-        // Segunda vez - validar contraseña
         if (!password.trim()) {
           setError("Por favor ingresa tu contraseña")
           setLoading(false)
@@ -93,13 +84,9 @@ export function LoginView({ onLoginStudent, onLoginAdmin }: LoginViewProps) {
           return
         }
 
-        console.log("[v0] Iniciando login admin con contraseña")
         try {
           await onLoginAdmin(documentNumber, password)
-          console.log("[v0] Login admin exitoso")
-          // Mantener loading=true hasta que se desmonte el componente
         } catch (err: any) {
-          console.error("[v0] Error en login admin:", err)
           setError(err.message || "Error al iniciar sesión")
           setLoading(false)
           isSubmittingRef.current = false
@@ -107,12 +94,10 @@ export function LoginView({ onLoginStudent, onLoginAdmin }: LoginViewProps) {
         return
       }
 
-      // Usuario con rol desconocido
       setError("Rol de usuario no reconocido")
       setLoading(false)
       isSubmittingRef.current = false
     } catch (err: any) {
-      console.error("[v0] Error al verificar usuario:", err)
       setError("Error al verificar el documento")
       setLoading(false)
       isSubmittingRef.current = false
@@ -123,8 +108,8 @@ export function LoginView({ onLoginStudent, onLoginAdmin }: LoginViewProps) {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 p-4">
       <Card className="w-full max-w-md shadow-xl border-green-100">
         <CardHeader className="space-y-3 text-center">
-          <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center mb-2">
-            <GraduationCap className="w-10 h-10 text-primary-foreground" />
+          <div className="mx-auto w-24 h-24 mb-2 relative">
+            <Image src="/images/logoupar.png" alt="Logo Uparsistem" fill className="object-contain" />
           </div>
           <CardTitle className="text-3xl font-bold text-primary">UPARSISTEM</CardTitle>
           <CardDescription className="text-base">

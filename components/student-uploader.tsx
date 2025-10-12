@@ -1,6 +1,8 @@
 "use client"
 
-import type React from "react"
+import React from "react"
+
+import type { ReactElement } from "react"
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -22,12 +24,12 @@ import {
 } from "lucide-react"
 import {
   uploadStudentsFromExcel,
-  getAllStudents,
   resetStudentsByPrograma,
   resetStudentsByGrupo,
   resetAllStudents,
   deleteStudentByDocumento,
   searchStudentByName,
+  subscribeToStudents,
 } from "@/lib/students"
 import {
   AlertDialog,
@@ -68,7 +70,7 @@ interface PreviewData {
   nivel: string
 }
 
-export function StudentUploader() {
+export function StudentUploader(): ReactElement {
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [result, setResult] = useState<{ success: number; errors: string[] } | null>(null)
@@ -100,8 +102,17 @@ export function StudentUploader() {
   const [showAssignDialog, setShowAssignDialog] = useState(false)
   const [showAddStudentDialog, setShowAddStudentDialog] = useState(false)
 
+  const fileInputRef = React.createRef<HTMLInputElement>()
+
   useEffect(() => {
-    loadStudents()
+    const unsubscribe = subscribeToStudents((studentsData) => {
+      setStudents(studentsData)
+      setFilteredStudents(studentsData)
+    })
+
+    return () => {
+      unsubscribe()
+    }
   }, [])
 
   useEffect(() => {
@@ -110,16 +121,7 @@ export function StudentUploader() {
   }, [searchTerm, students, filterJornada, filterPrograma, filterNivel, filterPeriodo, filterGrupo])
 
   const loadStudents = async () => {
-    setLoading(true)
-    try {
-      const allStudents = await getAllStudents()
-      setStudents(allStudents)
-      setFilteredStudents(allStudents)
-    } catch (error) {
-      console.error("Error cargando estudiantes:", error)
-    } finally {
-      setLoading(false)
-    }
+    // Esta función se mantiene para compatibilidad pero ya no hace nada
   }
 
   const filterStudents = () => {
@@ -187,7 +189,7 @@ export function StudentUploader() {
 
         const errors: string[] = []
         const preview: PreviewData[] = []
-        const documentosEnArchivo = new Set<string>()
+        const documentosEnArchivo = new Map<string, number>()
 
         for (let i = 0; i < Math.min(10, jsonData.length); i++) {
           const row: any = jsonData[i]
@@ -211,11 +213,7 @@ export function StudentUploader() {
 
           const documento = row["Número de identificación"].toString()
 
-          if (documentosEnArchivo.has(documento)) {
-            errors.push(`Fila ${i + 2}: Documento ${documento} está duplicado en el archivo`)
-          } else {
-            documentosEnArchivo.add(documento)
-          }
+          documentosEnArchivo.set(documento, (documentosEnArchivo.get(documento) || 0) + 1)
 
           preview.push({
             primerNombre: row["Primer nombre"],
@@ -235,12 +233,16 @@ export function StudentUploader() {
           const row: any = jsonData[i]
           const documento = row["Número de identificación"]?.toString()
           if (documento) {
-            if (documentosEnArchivo.has(documento)) {
-              errors.push(`Fila ${i + 2}: Documento ${documento} está duplicado en el archivo`)
-            } else {
-              documentosEnArchivo.add(documento)
-            }
+            documentosEnArchivo.set(documento, (documentosEnArchivo.get(documento) || 0) + 1)
           }
+        }
+
+        const multipleEnrollments = Array.from(documentosEnArchivo.entries()).filter(([_, count]) => count > 1)
+
+        if (multipleEnrollments.length > 0) {
+          errors.push(
+            `ℹ️ Información: ${multipleEnrollments.length} estudiante(s) tienen múltiples inscripciones en el archivo (esto es válido)`,
+          )
         }
 
         setPreviewData(preview)
@@ -262,10 +264,17 @@ export function StudentUploader() {
     try {
       const uploadResult = await uploadStudentsFromExcel(file)
       setResult(uploadResult)
+
       setFile(null)
       setPreviewData([])
       setPreviewErrors([])
-      await loadStudents()
+      setShowPreview(false)
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+
+      // Ya no necesitamos llamar loadStudents() porque la suscripción actualiza automáticamente
     } catch (error) {
       console.error("Error subiendo archivo:", error)
       setResult({ success: 0, errors: ["Error al procesar el archivo"] })
@@ -280,7 +289,7 @@ export function StudentUploader() {
       const count = await resetStudentsByPrograma(resetPrograma)
       alert(`${count} estudiantes eliminados del programa ${resetPrograma}`)
       setResetPrograma("")
-      await loadStudents()
+      // Ya no necesitamos llamar loadStudents()
     } catch (error) {
       console.error("Error reseteando por programa:", error)
       alert("Error al resetear estudiantes")
@@ -293,7 +302,7 @@ export function StudentUploader() {
       const count = await resetStudentsByGrupo(resetGrupo)
       alert(`${count} estudiantes eliminados del grupo ${resetGrupo}`)
       setResetGrupo("")
-      await loadStudents()
+      // Ya no necesitamos llamar loadStudents()
     } catch (error) {
       console.error("Error reseteando por grupo:", error)
       alert("Error al resetear estudiantes")
@@ -304,7 +313,7 @@ export function StudentUploader() {
     try {
       const count = await resetAllStudents()
       alert(`${count} estudiantes eliminados en total`)
-      await loadStudents()
+      // Ya no necesitamos llamar loadStudents()
     } catch (error) {
       console.error("Error reseteando todos los estudiantes:", error)
       alert("Error al resetear estudiantes")
@@ -340,7 +349,7 @@ export function StudentUploader() {
         alert(`Estudiante ${nombre} eliminado exitosamente`)
         setDeleteSearchTerm("")
         setDeleteSearchResults([])
-        await loadStudents()
+        // Ya no necesitamos llamar loadStudents()
       } else {
         alert("No se encontró el estudiante")
       }
@@ -352,7 +361,9 @@ export function StudentUploader() {
 
   const countByJornada = students.reduce(
     (acc, student) => {
-      acc[student.jornada] = (acc[student.jornada] || 0) + 1
+      if (student.jornada) {
+        acc[student.jornada] = (acc[student.jornada] || 0) + 1
+      }
       return acc
     },
     {} as Record<string, number>,
@@ -360,7 +371,9 @@ export function StudentUploader() {
 
   const countByPrograma = students.reduce(
     (acc, student) => {
-      acc[student.programa] = (acc[student.programa] || 0) + 1
+      if (student.programa) {
+        acc[student.programa] = (acc[student.programa] || 0) + 1
+      }
       return acc
     },
     {} as Record<string, number>,
@@ -368,7 +381,9 @@ export function StudentUploader() {
 
   const countByNivel = students.reduce(
     (acc, student) => {
-      acc[student.nivel] = (acc[student.nivel] || 0) + 1
+      if (student.nivel) {
+        acc[student.nivel] = (acc[student.nivel] || 0) + 1
+      }
       return acc
     },
     {} as Record<string, number>,
@@ -589,6 +604,11 @@ export function StudentUploader() {
                 placeholder="Buscar por documento, nombre, programa o grupo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSearchStudentToDelete()
+                  }
+                }}
                 className="flex-1"
               />
               {hasActiveFilters && (
@@ -624,9 +644,9 @@ export function StudentUploader() {
                             <td className="p-2">
                               {`${student.primerNombre} ${student.segundoNombre || ""} ${student.primerApellido} ${student.segundoApellido || ""}`.trim()}
                             </td>
-                            <td className="p-2">{student.programa}</td>
-                            <td className="p-2">{student.grupo}</td>
-                            <td className="p-2">{student.nivel}</td>
+                            <td className="p-2">{student.programa || "-"}</td>
+                            <td className="p-2">{student.grupo || "-"}</td>
+                            <td className="p-2">{student.nivel || "-"}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -716,6 +736,7 @@ export function StudentUploader() {
                 <div className="flex items-center gap-4">
                   <label className="flex-1">
                     <input
+                      ref={fileInputRef}
                       type="file"
                       accept=".xlsx,.xls"
                       onChange={handleFileChange}
@@ -750,6 +771,9 @@ export function StudentUploader() {
                             setFile(null)
                             setPreviewData([])
                             setPreviewErrors([])
+                            if (fileInputRef.current) {
+                              fileInputRef.current.value = ""
+                            }
                           }}
                         >
                           <X className="h-4 w-4" />
@@ -843,15 +867,19 @@ export function StudentUploader() {
                   <p className="mb-2 font-medium text-sm">{result.success} estudiante(s) cargado(s) exitosamente</p>
                   {result.errors.length > 0 && (
                     <div className="mt-4">
-                      <p className="mb-2 font-medium text-yellow-800 text-sm">Errores encontrados:</p>
+                      <p className="mb-2 font-medium text-yellow-800 text-sm">
+                        Advertencias y errores encontrados ({result.errors.length}):
+                      </p>
                       <ul className="list-inside list-disc space-y-1 text-xs text-yellow-700 max-h-40 overflow-y-auto">
-                        {result.errors.slice(0, 10).map((error, index) => (
+                        {result.errors.map((error, index) => (
                           <li key={index}>{error}</li>
                         ))}
-                        {result.errors.length > 10 && <li>... y {result.errors.length - 10} errores más</li>}
                       </ul>
                     </div>
                   )}
+                  <Button variant="outline" size="sm" onClick={() => setResult(null)} className="mt-4 w-full">
+                    Cerrar y cargar otro archivo
+                  </Button>
                 </CardContent>
               </Card>
             )}
@@ -910,8 +938,8 @@ export function StudentUploader() {
                               <td className="p-2">
                                 {`${student.primerNombre} ${student.segundoNombre || ""} ${student.primerApellido} ${student.segundoApellido || ""}`.trim()}
                               </td>
-                              <td className="p-2">{student.programa}</td>
-                              <td className="p-2">{student.grupo}</td>
+                              <td className="p-2">{student.programa || "-"}</td>
+                              <td className="p-2">{student.grupo || "-"}</td>
                               <td className="p-2 text-center">
                                 <Button
                                   variant="destructive"
@@ -1075,7 +1103,7 @@ export function StudentUploader() {
         open={showAddStudentDialog}
         onOpenChange={setShowAddStudentDialog}
         onSuccess={() => {
-          loadStudents()
+          // loadStudents() // No es necesario llamar loadStudents debido a la suscripción en tiempo real
           setShowAddStudentDialog(false)
         }}
       />
@@ -1084,7 +1112,7 @@ export function StudentUploader() {
         open={showAssignDialog}
         onOpenChange={setShowAssignDialog}
         onSuccess={() => {
-          loadStudents()
+          // loadStudents() // No es necesario llamar loadStudents debido a la suscripción en tiempo real
           setShowAssignDialog(false)
         }}
       />

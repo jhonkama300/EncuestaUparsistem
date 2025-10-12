@@ -25,7 +25,7 @@ import { CreateSurveyDialog } from "./create-survey-dialog"
 import { SurveyResultsDialog } from "./survey-results-dialog"
 import { SurveyStatisticsDialog } from "./survey-statistics-dialog"
 import { SurveyStudentsDialog } from "./survey-students-dialog"
-import { getAllSurveys, getSurveyStats, deleteSurvey, updateSurvey } from "@/lib/surveys"
+import { getSurveyStats, deleteSurvey, updateSurvey, subscribeToAllSurveys } from "@/lib/surveys"
 import { useToast } from "@/hooks/use-toast"
 import { formatDateForDisplay, formatTimeForDisplay } from "@/lib/date-utils"
 import {
@@ -39,6 +39,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
 
 export function SurveyManager() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -57,7 +58,7 @@ export function SurveyManager() {
   const [showFilters, setShowFilters] = useState(false)
 
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage] = useState(5) // 5 encuestas por página
+  const [itemsPerPage, setItemsPerPage] = useState(5) // 5 encuestas por página
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [toggleDialogOpen, setToggleDialogOpen] = useState(false)
@@ -65,7 +66,15 @@ export function SurveyManager() {
   const [surveyToToggle, setSurveyToToggle] = useState<any>(null)
 
   useEffect(() => {
-    loadData()
+    loadStats()
+
+    const unsubscribe = subscribeToAllSurveys((surveysData) => {
+      setSurveys(surveysData)
+    })
+
+    return () => {
+      unsubscribe()
+    }
   }, [])
 
   useEffect(() => {
@@ -76,11 +85,13 @@ export function SurveyManager() {
     setCurrentPage(1)
   }, [searchTerm, filterTipo])
 
-  const loadData = async () => {
-    const surveysData = await getAllSurveys()
+  const loadStats = async () => {
     const statsData = await getSurveyStats()
-    setSurveys(surveysData)
     setStats(statsData)
+  }
+
+  const loadData = async () => {
+    await loadStats()
   }
 
   const applyFilters = () => {
@@ -223,6 +234,85 @@ export function SurveyManager() {
   const goToPage = (page: number) => {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)))
   }
+
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(Number(value))
+    setCurrentPage(1)
+  }
+
+  const PaginationControls = () => (
+    <div className="flex items-center justify-between py-4 border-t border-emerald-200">
+      <div className="flex items-center gap-4">
+        <div className="text-sm text-gray-600">
+          Mostrando {startIndex + 1} - {Math.min(endIndex, filteredSurveys.length)} de {filteredSurveys.length}{" "}
+          encuestas
+        </div>
+        <div className="flex items-center gap-2">
+          <Label className="text-sm text-gray-600">Mostrar:</Label>
+          <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
+            <SelectTrigger className="w-20">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="5">5</SelectItem>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="20">20</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => goToPage(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="gap-1"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Anterior
+        </Button>
+
+        <div className="flex items-center gap-1">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+            if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
+              return (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => goToPage(page)}
+                  className={currentPage === page ? "bg-emerald-600 hover:bg-emerald-700" : ""}
+                >
+                  {page}
+                </Button>
+              )
+            } else if (page === currentPage - 2 || page === currentPage + 2) {
+              return (
+                <span key={page} className="px-2 text-gray-400">
+                  ...
+                </span>
+              )
+            }
+            return null
+          })}
+        </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => goToPage(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="gap-1"
+        >
+          Siguiente
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  )
 
   return (
     <>
@@ -378,6 +468,8 @@ export function SurveyManager() {
             </Card>
           ) : (
             <>
+              {totalPages > 1 && <PaginationControls />}
+
               {paginatedSurveys.map((survey) => (
                 <Card
                   key={survey.id}
@@ -422,7 +514,7 @@ export function SurveyManager() {
                           )}
                         </div>
 
-                        {(survey.programa || survey.nivel || survey.periodo || survey.grupo) && (
+                        {(survey.programa || survey.nivel || survey.periodo || survey.grupos || survey.auditorio) && (
                           <div className="mt-3 flex flex-wrap gap-2">
                             {survey.programa && (
                               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
@@ -439,10 +531,42 @@ export function SurveyManager() {
                                 {survey.periodo}
                               </span>
                             )}
-                            {survey.grupo && (
-                              <span className="text-xs bg-teal-100 text-teal-700 px-2 py-1 rounded">
-                                Grupo {survey.grupo}
-                              </span>
+                            {survey.grupos && Array.isArray(survey.grupos) && survey.grupos.length > 0 && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-xs bg-teal-100 text-teal-700 px-2 py-1 rounded cursor-help">
+                                      {survey.grupos.length === 1
+                                        ? `Grupo: ${survey.grupos[0]}`
+                                        : `${survey.grupos.join(", ")}`}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-md">
+                                    <div className="space-y-1">
+                                      <p className="font-semibold text-xs">Grupos asignados:</p>
+                                      {survey.grupos.map((grupo: string, idx: number) => (
+                                        <p key={idx} className="text-xs">
+                                          • {grupo}
+                                        </p>
+                                      ))}
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            {survey.auditorio && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded cursor-help">
+                                      {survey.auditorio}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="text-xs">Lugar del evento</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             )}
                           </div>
                         )}
@@ -516,64 +640,7 @@ export function SurveyManager() {
                 </Card>
               ))}
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-6 pt-6 border-t border-emerald-200">
-                  <div className="text-sm text-gray-600">
-                    Mostrando {startIndex + 1} - {Math.min(endIndex, filteredSurveys.length)} de{" "}
-                    {filteredSurveys.length} encuestas
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => goToPage(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="gap-1"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      Anterior
-                    </Button>
-
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                        // Mostrar solo algunas páginas alrededor de la actual
-                        if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
-                          return (
-                            <Button
-                              key={page}
-                              variant={currentPage === page ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => goToPage(page)}
-                              className={currentPage === page ? "bg-emerald-600 hover:bg-emerald-700" : ""}
-                            >
-                              {page}
-                            </Button>
-                          )
-                        } else if (page === currentPage - 2 || page === currentPage + 2) {
-                          return (
-                            <span key={page} className="px-2 text-gray-400">
-                              ...
-                            </span>
-                          )
-                        }
-                        return null
-                      })}
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => goToPage(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className="gap-1"
-                    >
-                      Siguiente
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
+              {totalPages > 1 && <PaginationControls />}
             </>
           )}
         </div>

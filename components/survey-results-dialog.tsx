@@ -6,8 +6,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { getSurveyResponses } from "@/lib/surveys"
 import { Users, Calendar, CheckCircle2, ChevronDown, ChevronUp, User } from "lucide-react"
-import { doc, getDoc } from "firebase/firestore"
-import { db } from "@/lib/firebase"
 
 interface SurveyResultsDialogProps {
   open: boolean
@@ -25,7 +23,6 @@ export function SurveyResultsDialog({ open, onOpenChange, surveyId, surveyTitle 
   useEffect(() => {
     if (open && surveyId) {
       loadResponses()
-      loadSurveyQuestions()
     }
   }, [open, surveyId])
 
@@ -34,24 +31,12 @@ export function SurveyResultsDialog({ open, onOpenChange, surveyId, surveyTitle 
     try {
       const data = await getSurveyResponses(surveyId)
       console.log("[v0] Respuestas cargadas en el componente:", data)
-      setResponses(data)
+      setResponses(data.respuestas || [])
+      setSurveyQuestions(data.encuesta?.preguntas || [])
     } catch (error) {
       console.error("Error cargando respuestas:", error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const loadSurveyQuestions = async () => {
-    try {
-      const surveyDoc = await getDoc(doc(db, "encuestas", surveyId))
-      if (surveyDoc.exists()) {
-        const surveyData = surveyDoc.data()
-        console.log("[v0] Preguntas de la encuesta:", surveyData.preguntas)
-        setSurveyQuestions(surveyData.preguntas || [])
-      }
-    } catch (error) {
-      console.error("Error cargando preguntas de la encuesta:", error)
     }
   }
 

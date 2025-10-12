@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc } from "firebase/firestore"
+import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, onSnapshot } from "firebase/firestore"
 import { db } from "./firebase"
 
 export interface PonenteData {
@@ -147,5 +147,26 @@ export async function updatePonente(ponenteId: string, ponenteData: Partial<Pone
   } catch (error) {
     console.error("[v0] Error actualizando ponente:", error)
     throw error
+  }
+}
+
+export function subscribeToPonentes(callback: (ponentes: any[]) => void) {
+  try {
+    const ponentesRef = collection(db, "ponentes")
+    const q = query(ponentesRef, where("activo", "==", true))
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const ponentes = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }))
+
+      callback(ponentes)
+    })
+
+    return unsubscribe
+  } catch (error) {
+    console.error("Error suscribiéndose a ponentes:", error)
+    return () => {}
   }
 }

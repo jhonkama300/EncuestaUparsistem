@@ -9,6 +9,7 @@ import { SurveyForm } from "./survey-form"
 import { collection, query, where, onSnapshot } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
 
 interface StudentViewProps {
   user: UserData
@@ -110,6 +111,28 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
         </div>
       </CardHeader>
       <CardContent>
+        <div className="flex flex-wrap gap-2 mb-4">
+          {(survey.programaAsignado || survey.programa) && (
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+              {survey.programaAsignado || survey.programa}
+            </Badge>
+          )}
+          {(survey.nivelAsignado || survey.nivel) && (
+            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+              Nivel: {survey.nivelAsignado || survey.nivel}
+            </Badge>
+          )}
+          {(survey.periodoAsignado || survey.periodo) && (
+            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+              {survey.periodoAsignado || survey.periodo}
+            </Badge>
+          )}
+          {(survey.grupoAsignado || survey.grupo) && (
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              Grupo {survey.grupoAsignado || survey.grupo}
+            </Badge>
+          )}
+        </div>
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
             <p>{survey.preguntas?.length || 0} preguntas</p>

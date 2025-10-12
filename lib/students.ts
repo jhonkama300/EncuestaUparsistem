@@ -1,6 +1,20 @@
-import { collection, query, where, getDocs, writeBatch, doc, updateDoc } from "firebase/firestore"
+import { collection, query, where, getDocs, writeBatch, doc, onSnapshot } from "firebase/firestore"
 import { db } from "./firebase"
 import * as XLSX from "xlsx"
+
+export interface Student {
+  id?: string
+  primerNombre: string
+  segundoNombre: string
+  primerApellido: string
+  segundoApellido: string
+  documento: string
+  jornada: string
+  programa: string
+  grupo: string
+  periodo: string
+  nivel: string
+}
 
 export interface StudentData {
   primerNombre: string
@@ -28,31 +42,23 @@ export async function uploadStudentsFromExcel(file: File): Promise<{ success: nu
 
     console.log("[v0] Total de filas encontradas:", jsonData.length)
 
-    const documentos = jsonData.map((row: any) => row["Número de identificación"]?.toString()).filter(Boolean)
-
     const estudiantesRef = collection(db, "estudiantes")
+    const existingStudentsSnap = await getDocs(estudiantesRef)
+
+    // Crear un mapa de estudiantes existentes: documento+programa+grupo+nivel -> datos
+    const existingStudentsMap = new Map<string, any>()
+    existingStudentsSnap.docs.forEach((d) => {
+      const data = d.data()
+      const key = `${data.documento}|${data.programa}|${data.grupo}|${data.nivel}`
+      existingStudentsMap.set(key, { id: d.id, ...data })
+    })
+
+    console.log("[v0] Estudiantes existentes encontrados en BD:", existingStudentsSnap.size)
+
     const usuariosRef = collection(db, "usuarios")
-
-    const existingStudentDocs = new Set<string>()
     const existingUserDocs = new Set<string>()
-
-    // Dividir documentos en lotes de 10 para consultar
-    for (let i = 0; i < documentos.length; i += 10) {
-      const batch = documentos.slice(i, i + 10)
-
-      const existingStudentsQuery = query(estudiantesRef, where("documento", "in", batch))
-      const existingUsersQuery = query(usuariosRef, where("documento", "in", batch))
-
-      const [existingStudentsSnap, existingUsersSnap] = await Promise.all([
-        getDocs(existingStudentsQuery),
-        getDocs(existingUsersQuery),
-      ])
-
-      existingStudentsSnap.docs.forEach((d) => existingStudentDocs.add(d.data().documento))
-      existingUsersSnap.docs.forEach((d) => existingUserDocs.add(d.data().documento))
-    }
-
-    console.log("[v0] Estudiantes existentes encontrados en BD:", existingStudentDocs.size)
+    const usuariosSnap = await getDocs(usuariosRef)
+    usuariosSnap.docs.forEach((d) => existingUserDocs.add(d.data().documento))
 
     let batch = writeBatch(db)
     let batchCount = 0
@@ -62,7 +68,6 @@ export async function uploadStudentsFromExcel(file: File): Promise<{ success: nu
       const row: any = jsonData[i]
 
       try {
-        // Validar campos requeridos
         const requiredFields = [
           "Primer nombre",
           "Primer apellido",
@@ -80,44 +85,55 @@ export async function uploadStudentsFromExcel(file: File): Promise<{ success: nu
           continue
         }
 
-        const studentData: StudentData = {
-          primerNombre: row["Primer nombre"],
+        const documento = row["Número de identificación"].toString()
+        const primerNombre = row["Primer nombre"]
+        const programa = row["Programa"]
+        const grupo = row["Grupo"]
+        const nivel = row["Nivel"].toString()
+
+        const key = `${documento}|${programa}|${grupo}|${nivel}`
+        const existingStudent = existingStudentsMap.get(key)
+
+        if (existingStudent) {
+          errors.push(
+            `Fila ${i + 2}: Estudiante ${primerNombre} con documento ${documento} ya existe con el mismo programa (${programa}), grupo (${grupo}) y nivel (${nivel}). No se creará duplicado.`,
+          )
+          console.log(`[v0] Registro duplicado encontrado (skip): ${documento} - ${programa} - ${grupo} - ${nivel}`)
+          continue
+        }
+
+        const studentData: Student = {
+          primerNombre: primerNombre,
           segundoNombre: row["Segundo nombre"] || "",
           primerApellido: row["Primer apellido"],
           segundoApellido: row["Segundo apellido"] || "",
-          documento: row["Número de identificación"].toString(),
+          documento: documento,
           jornada: row["Jornada"],
-          programa: row["Programa"],
-          grupo: row["Grupo"],
+          programa: programa,
+          grupo: grupo,
           periodo: row["Período"],
-          nivel: row["Nivel"].toString(),
-        }
-
-        if (existingStudentDocs.has(studentData.documento)) {
-          errors.push(`Fila ${i + 2}: Estudiante con documento ${studentData.documento} ya existe en la base de datos`)
-          continue
+          nivel: nivel,
         }
 
         const estudianteDocRef = doc(collection(db, "estudiantes"))
         batch.set(estudianteDocRef, studentData)
         batchCount++
+        existingStudentsMap.set(key, { id: estudianteDocRef.id, ...studentData })
 
-        existingStudentDocs.add(studentData.documento)
-
-        // Agregar usuario si no existe
-        if (!existingUserDocs.has(studentData.documento)) {
+        // Crear usuario si no existe
+        if (!existingUserDocs.has(documento)) {
           const usuarioDocRef = doc(collection(db, "usuarios"))
           batch.set(usuarioDocRef, {
-            documento: studentData.documento,
+            documento: documento,
             nombre:
               `${studentData.primerNombre} ${studentData.segundoNombre} ${studentData.primerApellido} ${studentData.segundoApellido}`.trim(),
-            email: `${studentData.documento}@estudiante.edu.co`,
+            email: `${documento}@estudiante.edu.co`,
             rol: "estudiante",
             activo: true,
             fechaCreacion: new Date().toISOString(),
           })
           batchCount++
-          existingUserDocs.add(studentData.documento)
+          existingUserDocs.add(documento)
         }
 
         if (batchCount >= BATCH_SIZE) {
@@ -191,11 +207,21 @@ export async function getStudentsByFilters(filtros: {
     const estudiantesRef = collection(db, "estudiantes")
     let q = query(estudiantesRef)
 
-    if (filtros.jornada) q = query(q, where("jornada", "==", filtros.jornada))
-    if (filtros.programa) q = query(q, where("programa", "==", filtros.programa))
-    if (filtros.grupo) q = query(q, where("grupo", "==", filtros.grupo))
-    if (filtros.periodo) q = query(q, where("periodo", "==", filtros.periodo))
-    if (filtros.nivel) q = query(q, where("nivel", "==", filtros.nivel))
+    if (filtros.jornada) {
+      q = query(q, where("jornada", "==", filtros.jornada))
+    }
+    if (filtros.programa) {
+      q = query(q, where("programa", "==", filtros.programa))
+    }
+    if (filtros.grupo) {
+      q = query(q, where("grupo", "==", filtros.grupo))
+    }
+    if (filtros.periodo) {
+      q = query(q, where("periodo", "==", filtros.periodo))
+    }
+    if (filtros.nivel) {
+      q = query(q, where("nivel", "==", filtros.nivel))
+    }
 
     const snapshot = await getDocs(q)
     return snapshot.docs.map((doc) => ({
@@ -212,6 +238,7 @@ export async function getAllStudents() {
   try {
     const estudiantesRef = collection(db, "estudiantes")
     const snapshot = await getDocs(estudiantesRef)
+
     return snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
@@ -226,34 +253,17 @@ export async function resetStudentsByPrograma(programa: string): Promise<number>
   try {
     console.log("[v0] Reseteando estudiantes del programa:", programa)
     const estudiantesRef = collection(db, "estudiantes")
-    const usuariosRef = collection(db, "usuarios")
-
-    const qEstudiantes = query(estudiantesRef, where("programa", "==", programa))
-    const estudiantesSnapshot = await getDocs(qEstudiantes)
-
-    const documentos = estudiantesSnapshot.docs.map((doc) => doc.data().documento)
+    const q = query(estudiantesRef, where("programa", "==", programa))
+    const snapshot = await getDocs(q)
 
     const batch = writeBatch(db)
-    let count = 0
-
-    // Delete students
-    estudiantesSnapshot.docs.forEach((docSnap) => {
+    snapshot.docs.forEach((docSnap) => {
       batch.delete(doc(db, "estudiantes", docSnap.id))
-      count++
     })
 
-    // Delete associated users
-    if (documentos.length > 0) {
-      const qUsuarios = query(usuariosRef, where("documento", "in", documentos.slice(0, 10)))
-      const usuariosSnapshot = await getDocs(qUsuarios)
-      usuariosSnapshot.docs.forEach((docSnap) => {
-        batch.delete(doc(db, "usuarios", docSnap.id))
-      })
-    }
-
     await batch.commit()
-    console.log("[v0] Estudiantes eliminados:", count)
-    return count
+    console.log("[v0] Estudiantes eliminados:", snapshot.size)
+    return snapshot.size
   } catch (error) {
     console.error("[v0] Error reseteando estudiantes por programa:", error)
     throw error
@@ -264,34 +274,17 @@ export async function resetStudentsByGrupo(grupo: string): Promise<number> {
   try {
     console.log("[v0] Reseteando estudiantes del grupo:", grupo)
     const estudiantesRef = collection(db, "estudiantes")
-    const usuariosRef = collection(db, "usuarios")
-
-    const qEstudiantes = query(estudiantesRef, where("grupo", "==", grupo))
-    const estudiantesSnapshot = await getDocs(qEstudiantes)
-
-    const documentos = estudiantesSnapshot.docs.map((doc) => doc.data().documento)
+    const q = query(estudiantesRef, where("grupo", "==", grupo))
+    const snapshot = await getDocs(q)
 
     const batch = writeBatch(db)
-    let count = 0
-
-    // Delete students
-    estudiantesSnapshot.docs.forEach((docSnap) => {
+    snapshot.docs.forEach((docSnap) => {
       batch.delete(doc(db, "estudiantes", docSnap.id))
-      count++
     })
 
-    // Delete associated users
-    if (documentos.length > 0) {
-      const qUsuarios = query(usuariosRef, where("documento", "in", documentos.slice(0, 10)))
-      const usuariosSnapshot = await getDocs(qUsuarios)
-      usuariosSnapshot.docs.forEach((docSnap) => {
-        batch.delete(doc(db, "usuarios", docSnap.id))
-      })
-    }
-
     await batch.commit()
-    console.log("[v0] Estudiantes eliminados:", count)
-    return count
+    console.log("[v0] Estudiantes eliminados:", snapshot.size)
+    return snapshot.size
   } catch (error) {
     console.error("[v0] Error reseteando estudiantes por grupo:", error)
     throw error
@@ -312,7 +305,6 @@ export async function resetAllStudents(): Promise<number> {
     let count = 0
     const BATCH_SIZE = 500
 
-    // Delete all students
     estudiantesSnapshot.docs.forEach((docSnap) => {
       batch.delete(doc(db, "estudiantes", docSnap.id))
       count++
@@ -323,7 +315,6 @@ export async function resetAllStudents(): Promise<number> {
       }
     })
 
-    // Delete all student users
     usuariosSnapshot.docs.forEach((docSnap) => {
       batch.delete(doc(db, "usuarios", docSnap.id))
 
@@ -334,7 +325,7 @@ export async function resetAllStudents(): Promise<number> {
     })
 
     await batch.commit()
-    console.log("[v0] Total de estudiantes eliminados:", count)
+    console.log("[v0] Total de registros eliminados:", count)
     return count
   } catch (error) {
     console.error("[v0] Error reseteando todos los estudiantes:", error)
@@ -344,11 +335,10 @@ export async function resetAllStudents(): Promise<number> {
 
 export async function deleteStudentByDocumento(documento: string): Promise<boolean> {
   try {
-    console.log("[v0] Eliminando estudiante con documento:", documento)
+    console.log("[v0] Eliminando TODOS los registros del estudiante con documento:", documento)
     const estudiantesRef = collection(db, "estudiantes")
     const usuariosRef = collection(db, "usuarios")
 
-    // Buscar estudiante por documento
     const qEstudiante = query(estudiantesRef, where("documento", "==", documento))
     const estudianteSnapshot = await getDocs(qEstudiante)
 
@@ -359,12 +349,12 @@ export async function deleteStudentByDocumento(documento: string): Promise<boole
 
     const batch = writeBatch(db)
 
-    // Eliminar estudiante
+    // Eliminar TODOS los registros del estudiante (todas sus inscripciones)
     estudianteSnapshot.docs.forEach((docSnap) => {
       batch.delete(doc(db, "estudiantes", docSnap.id))
     })
 
-    // Eliminar usuario asociado
+    // Eliminar usuario
     const qUsuario = query(usuariosRef, where("documento", "==", documento))
     const usuarioSnapshot = await getDocs(qUsuario)
     usuarioSnapshot.docs.forEach((docSnap) => {
@@ -372,7 +362,7 @@ export async function deleteStudentByDocumento(documento: string): Promise<boole
     })
 
     await batch.commit()
-    console.log("[v0] Estudiante eliminado exitosamente:", documento)
+    console.log("[v0] Estudiante eliminado exitosamente (todas las inscripciones):", documento)
     return true
   } catch (error) {
     console.error("[v0] Error eliminando estudiante:", error)
@@ -409,8 +399,6 @@ export async function assignStudentToGroup(documento: string, nuevoGrupo: string
   try {
     console.log("[v0] Asignando estudiante", documento, "al grupo:", nuevoGrupo)
     const estudiantesRef = collection(db, "estudiantes")
-
-    // Buscar estudiante por documento
     const qEstudiante = query(estudiantesRef, where("documento", "==", documento))
     const estudianteSnapshot = await getDocs(qEstudiante)
 
@@ -419,13 +407,15 @@ export async function assignStudentToGroup(documento: string, nuevoGrupo: string
       return false
     }
 
-    // Actualizar el grupo del estudiante
-    const estudianteDoc = estudianteSnapshot.docs[0]
-    const estudianteRef = doc(db, "estudiantes", estudianteDoc.id)
+    const batch = writeBatch(db)
 
-    await updateDoc(estudianteRef, {
-      grupo: nuevoGrupo,
+    // Actualizar TODAS las inscripciones del estudiante
+    estudianteSnapshot.docs.forEach((docSnap) => {
+      const estudianteRef = doc(db, "estudiantes", docSnap.id)
+      batch.update(estudianteRef, { grupo: nuevoGrupo })
     })
+
+    await batch.commit()
 
     console.log("[v0] Estudiante asignado al grupo exitosamente")
     return true
@@ -451,7 +441,6 @@ export async function assignMultipleStudentsToGroup(
 
     for (const documento of documentos) {
       try {
-        // Buscar estudiante por documento
         const qEstudiante = query(estudiantesRef, where("documento", "==", documento))
         const estudianteSnapshot = await getDocs(qEstudiante)
 
@@ -460,15 +449,15 @@ export async function assignMultipleStudentsToGroup(
           continue
         }
 
-        // Actualizar el grupo del estudiante
-        const estudianteDoc = estudianteSnapshot.docs[0]
-        const estudianteRef = doc(db, "estudiantes", estudianteDoc.id)
+        // Actualizar TODAS las inscripciones del estudiante
+        estudianteSnapshot.docs.forEach((docSnap) => {
+          const estudianteRef = doc(db, "estudiantes", docSnap.id)
+          batch.update(estudianteRef, { grupo: nuevoGrupo })
+          batchCount++
+        })
 
-        batch.update(estudianteRef, { grupo: nuevoGrupo })
-        batchCount++
         success++
 
-        // Ejecutar batch si alcanza el límite
         if (batchCount >= BATCH_SIZE) {
           await batch.commit()
           console.log("[v0] Batch de", batchCount, "operaciones ejecutado")
@@ -480,7 +469,6 @@ export async function assignMultipleStudentsToGroup(
       }
     }
 
-    // Ejecutar batch restante
     if (batchCount > 0) {
       await batch.commit()
       console.log("[v0] Último batch de", batchCount, "operaciones ejecutado")
@@ -511,7 +499,6 @@ export async function createNewGroup(
       return 0
     }
 
-    // Obtener estudiantes que coincidan con los filtros
     const estudiantes = await getStudentsByFilters(filtros)
 
     if (estudiantes.length === 0) {
@@ -519,7 +506,6 @@ export async function createNewGroup(
       return 0
     }
 
-    // Asignar todos los estudiantes al nuevo grupo
     const documentos = estudiantes.map((e: any) => e.documento)
     const result = await assignMultipleStudentsToGroup(documentos, grupoNombre)
 
@@ -528,5 +514,25 @@ export async function createNewGroup(
   } catch (error) {
     console.error("[v0] Error creando nuevo grupo:", error)
     throw error
+  }
+}
+
+export function subscribeToStudents(callback: (students: any[]) => void) {
+  try {
+    const estudiantesRef = collection(db, "estudiantes")
+
+    const unsubscribe = onSnapshot(estudiantesRef, (querySnapshot) => {
+      const students = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }))
+
+      callback(students)
+    })
+
+    return unsubscribe
+  } catch (error) {
+    console.error("Error suscribiéndose a estudiantes:", error)
+    return () => {}
   }
 }

@@ -49,6 +49,7 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
   const [fechaEncuesta, setFechaEncuesta] = useState("")
   const [horaInicio, setHoraInicio] = useState("")
   const [horaFin, setHoraFin] = useState("")
+  const [auditorio, setAuditorio] = useState("") // Agregado estado para auditorio
 
   const [uniqueValues, setUniqueValues] = useState({
     programas: [],
@@ -94,6 +95,7 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
       setFechaEncuesta(editingSurvey.fechaEncuesta ? localISOToDateInput(editingSurvey.fechaEncuesta) : "")
       setHoraInicio(editingSurvey.horaInicio || "")
       setHoraFin(editingSurvey.horaFin || "")
+      setAuditorio(editingSurvey.auditorio || "") // Cargar auditorio al editar
     } else if (!open) {
       // Reset form when dialog closes
       setTitulo("")
@@ -118,9 +120,10 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
       setFechaEncuesta("")
       setHoraInicio("")
       setHoraFin("")
+      setAuditorio("") // Resetear auditorio al cerrar
       setActiveTab("preguntas")
       setShowTemplateSelector(false)
-      setGrupoError("") // Limpiar error al cerrar el diálogo
+      setGrupoError("")
     }
   }, [editingSurvey, open])
 
@@ -201,6 +204,9 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
       if (horaFin && horaFin.trim() !== "") {
         surveyData.horaFin = horaFin.trim()
       }
+      if (auditorio && auditorio.trim() !== "") {
+        surveyData.auditorio = auditorio.trim()
+      }
 
       if (editingSurvey && editingSurvey.id) {
         await updateSurvey(editingSurvey.id, surveyData)
@@ -237,7 +243,7 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
 
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-              <div className="px-4 sm:px-6 pt-4 pb-2 border-b bg-white">
+              <div className="px-4 sm:px-6 pt-4 pb-2 border-b bg-white sticky top-0 z-20">
                 <TabsList className="grid w-full grid-cols-4 h-auto p-1">
                   <TabsTrigger value="preguntas" className="gap-2 py-2 sm:py-3 text-xs sm:text-sm">
                     <ClipboardList className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -441,6 +447,23 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
                             placeholder="20:00"
                           />
                         </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-semibold text-emerald-800 mb-4 flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        Ubicación
+                      </h3>
+                      <div className="space-y-2">
+                        <Label>Auditorio / Lugar</Label>
+                        <Input
+                          type="text"
+                          placeholder="Ej: Auditorio Principal, Sala 201, etc."
+                          value={auditorio}
+                          onChange={(e) => setAuditorio(e.target.value)}
+                        />
+                        <p className="text-xs text-gray-500">Indica dónde se realizó el seminario o diplomado</p>
                       </div>
                     </div>
                   </div>

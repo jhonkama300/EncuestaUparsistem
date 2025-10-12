@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc } from "firebase/firestore"
+import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, onSnapshot } from "firebase/firestore"
 import { db } from "./firebase"
 
 export interface SurveyQuestion {
@@ -30,10 +30,12 @@ export interface SurveyData {
   nivel?: string
   periodo?: string
   grupo?: string
+  grupos?: string[] // Agregado campo para múltiples grupos
   // Date/time fields
   fechaEncuesta?: string // Date when survey was conducted
   horaInicio?: string // Start time of seminar (e.g., "06:00")
   horaFin?: string // End time of seminar (e.g., "20:00")
+  auditorio?: string // Agregado campo para auditorio/ubicación
   activa: boolean
   fechaCreacion: string
 }
@@ -213,64 +215,89 @@ export async function getAssignedSurveys(documento: string) {
       return []
     }
 
-    const estudiante = estudianteSnapshot.docs[0].data()
-    console.log("[v0] getAssignedSurveys - Estudiante encontrado:", estudiante)
+    const inscripciones = estudianteSnapshot.docs.map((doc) => doc.data())
+    console.log("[v0] getAssignedSurveys - Inscripciones encontradas:", inscripciones.length)
 
     const surveysRef = collection(db, "encuestas")
     const qSurveys = query(surveysRef, where("activa", "==", true))
     const surveysSnapshot = await getDocs(qSurveys)
 
-    const assignedSurveys = surveysSnapshot.docs.filter((doc) => {
+    const assignedSurveysMap = new Map()
+
+    surveysSnapshot.docs.forEach((doc) => {
       const survey = doc.data()
       const asignacion = survey.asignacion || {}
 
+      // Verificar asignación individual
       if (asignacion.estudiantesIndividuales?.includes(documento)) {
-        return true
+        assignedSurveysMap.set(doc.id, { surveyDoc: doc, grupoAsignado: null })
+        return
       }
 
+      // Verificar asignación por grupos - comparar con TODAS las inscripciones
       if (asignacion.grupos && asignacion.grupos.length > 0) {
-        return asignacion.grupos.some((grupo: any) => {
-          return (
-            (!grupo.programa || grupo.programa === estudiante.programa) &&
-            (!grupo.grupo || grupo.grupo === estudiante.grupo) &&
-            (!grupo.periodo || grupo.periodo === estudiante.periodo) &&
-            (!grupo.nivel || grupo.nivel === estudiante.nivel)
-          )
-        })
-      }
+        for (const inscripcion of inscripciones) {
+          const grupoCoincidente = asignacion.grupos.find((grupo: any) => {
+            return (
+              (!grupo.programa || grupo.programa === inscripcion.programa) &&
+              (!grupo.grupo || grupo.grupo === inscripcion.grupo) &&
+              (!grupo.periodo || grupo.periodo === inscripcion.periodo) &&
+              (!grupo.nivel || grupo.nivel === inscripcion.nivel)
+            )
+          })
 
-      return false
+          if (grupoCoincidente) {
+            // Si ya existe esta encuesta, no la agregamos de nuevo
+            if (!assignedSurveysMap.has(doc.id)) {
+              assignedSurveysMap.set(doc.id, {
+                surveyDoc: doc,
+                grupoAsignado: grupoCoincidente.grupo || null,
+                programaAsignado: grupoCoincidente.programa || null,
+                nivelAsignado: grupoCoincidente.nivel || null,
+                periodoAsignado: grupoCoincidente.periodo || null,
+              })
+            }
+            break // Ya encontramos una coincidencia, no necesitamos seguir buscando
+          }
+        }
+      }
     })
 
     const respuestasRef = collection(db, "respuestas")
     const ponentesRef = collection(db, "ponentes")
 
     const surveysWithStatus = await Promise.all(
-      assignedSurveys.map(async (surveyDoc) => {
-        const surveyData = surveyDoc.data()
-        const qRespuesta = query(
-          respuestasRef,
-          where("encuestaId", "==", surveyDoc.id),
-          where("documento", "==", documento),
-        )
-        const respuestaSnapshot = await getDocs(qRespuesta)
+      Array.from(assignedSurveysMap.values()).map(
+        async ({ surveyDoc, grupoAsignado, programaAsignado, nivelAsignado, periodoAsignado }) => {
+          const surveyData = surveyDoc.data()
+          const qRespuesta = query(
+            respuestasRef,
+            where("encuestaId", "==", surveyDoc.id),
+            where("documento", "==", documento),
+          )
+          const respuestaSnapshot = await getDocs(qRespuesta)
 
-        let ponenteNombre = null
-        if (surveyData.ponenteId) {
-          const qPonente = query(ponentesRef, where("__name__", "==", surveyData.ponenteId))
-          const ponenteSnapshot = await getDocs(qPonente)
-          if (!ponenteSnapshot.empty) {
-            ponenteNombre = ponenteSnapshot.docs[0].data().nombre
+          let ponenteNombre = null
+          if (surveyData.ponenteId) {
+            const qPonente = query(ponentesRef, where("__name__", "==", surveyData.ponenteId))
+            const ponenteSnapshot = await getDocs(qPonente)
+            if (!ponenteSnapshot.empty) {
+              ponenteNombre = ponenteSnapshot.docs[0].data().nombre
+            }
           }
-        }
 
-        return {
-          id: surveyDoc.id,
-          ...surveyData,
-          completada: !respuestaSnapshot.empty,
-          ponenteNombre,
-        }
-      }),
+          return {
+            id: surveyDoc.id,
+            ...surveyData,
+            grupoAsignado,
+            programaAsignado,
+            nivelAsignado,
+            periodoAsignado,
+            completada: !respuestaSnapshot.empty,
+            ponenteNombre,
+          }
+        },
+      ),
     )
 
     console.log("[v0] getAssignedSurveys - Encuestas asignadas:", surveysWithStatus.length)
@@ -299,6 +326,10 @@ export async function submitSurveyResponse(surveyId: string, documento: string, 
 
 export async function getSurveyResponses(surveyId: string) {
   try {
+    const surveyRef = doc(db, "encuestas", surveyId)
+    const surveyDoc = await getDocs(query(collection(db, "encuestas"), where("__name__", "==", surveyId)))
+    const encuesta = surveyDoc.empty ? null : { id: surveyDoc.docs[0].id, ...surveyDoc.docs[0].data() }
+
     const respuestasRef = collection(db, "respuestas")
     const q = query(respuestasRef, where("encuestaId", "==", surveyId))
     const respuestasSnapshot = await getDocs(q)
@@ -344,10 +375,17 @@ export async function getSurveyResponses(surveyId: string) {
     )
 
     console.log("[v0] Respuestas procesadas:", responsesWithStudents)
-    return responsesWithStudents
+
+    return {
+      encuesta,
+      respuestas: responsesWithStudents,
+    }
   } catch (error) {
     console.error("Error obteniendo respuestas de encuesta:", error)
-    return []
+    return {
+      encuesta: null,
+      respuestas: [],
+    }
   }
 }
 
@@ -377,5 +415,78 @@ export async function getSurveyStats() {
   } catch (error) {
     console.error("Error obteniendo estadísticas:", error)
     return { total: 0, respuestas: 0, tasa: 0 }
+  }
+}
+
+export function subscribeToSurveys(callback: (surveys: any[]) => void) {
+  try {
+    const surveysRef = collection(db, "encuestas")
+    const q = query(surveysRef, where("activa", "==", true))
+
+    const unsubscribe = onSnapshot(q, async (querySnapshot) => {
+      const respuestasRef = collection(db, "respuestas")
+
+      const surveysWithCounts = await Promise.all(
+        querySnapshot.docs.map(async (surveyDoc) => {
+          const qRespuestas = query(respuestasRef, where("encuestaId", "==", surveyDoc.id))
+          const respuestasSnapshot = await getDocs(qRespuestas)
+
+          return {
+            id: surveyDoc.id,
+            ...surveyDoc.data(),
+            respuestas: respuestasSnapshot.size,
+          }
+        }),
+      )
+
+      callback(surveysWithCounts)
+    })
+
+    return unsubscribe
+  } catch (error) {
+    console.error("Error suscribiéndose a encuestas:", error)
+    return () => {}
+  }
+}
+
+export function subscribeToAllSurveys(callback: (surveys: any[]) => void) {
+  try {
+    const surveysRef = collection(db, "encuestas")
+
+    const unsubscribe = onSnapshot(surveysRef, async (querySnapshot) => {
+      const respuestasRef = collection(db, "respuestas")
+      const ponentesRef = collection(db, "ponentes")
+
+      const surveysWithCounts = await Promise.all(
+        querySnapshot.docs.map(async (surveyDoc) => {
+          const surveyData = surveyDoc.data()
+          const qRespuestas = query(respuestasRef, where("encuestaId", "==", surveyDoc.id))
+          const respuestasSnapshot = await getDocs(qRespuestas)
+
+          let ponenteNombre = null
+          if (surveyData.ponenteId) {
+            const qPonente = query(ponentesRef, where("__name__", "==", surveyData.ponenteId))
+            const ponenteSnapshot = await getDocs(qPonente)
+            if (!ponenteSnapshot.empty) {
+              ponenteNombre = ponenteSnapshot.docs[0].data().nombre
+            }
+          }
+
+          return {
+            id: surveyDoc.id,
+            ...surveyData,
+            respuestas: respuestasSnapshot.size,
+            ponenteNombre,
+          }
+        }),
+      )
+
+      callback(surveysWithCounts)
+    })
+
+    return unsubscribe
+  } catch (error) {
+    console.error("Error suscribiéndose a todas las encuestas:", error)
+    return () => {}
   }
 }

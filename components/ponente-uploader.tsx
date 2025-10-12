@@ -299,13 +299,13 @@ export function PonenteUploader() {
                           <TableRow key={ponente.id}>
                             <TableCell>
                               <Avatar className="h-10 w-10">
-                                <AvatarImage
-                                  src={ponente.imagen || "/placeholder.svg?height=40&width=40&query=avatar"}
-                                  alt={ponente.nombre}
-                                />
-                                <AvatarFallback className="bg-emerald-100 text-emerald-700">
-                                  {ponente.nombre.charAt(0)}
-                                </AvatarFallback>
+                                {ponente.imagen && ponente.imagen.startsWith("data:") ? (
+                                  <AvatarImage src={ponente.imagen || "/placeholder.svg"} alt={ponente.nombre} />
+                                ) : (
+                                  <AvatarFallback className="bg-emerald-100 text-emerald-700 font-semibold">
+                                    {ponente.nombre.charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                )}
                               </Avatar>
                             </TableCell>
                             <TableCell className="font-medium">{ponente.nombre}</TableCell>

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { UserPlus, Loader2, Pencil, ImageIcon } from "lucide-react"
+import { UserPlus, Loader2, Pencil, ImageIcon, Upload } from "lucide-react"
 import { addPonente, updatePonente } from "@/lib/ponentes"
 import type { PonenteData } from "@/lib/ponentes"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -16,14 +16,30 @@ interface AddPonenteDialogProps {
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
   editMode?: boolean
-  ponenteData?: any
+  ponenteData?: PonenteData
 }
 
 const IMAGENES_PONENTES = [
-  { value: "ponente-1", label: "Ponente 1 (Hombre formal)", url: "/images/ponentes/ponente-1.jpg" },
-  { value: "ponente-2", label: "Ponente 2 (Mujer formal)", url: "/images/ponentes/ponente-2.jpg" },
-  { value: "ponente-3", label: "Ponente 3 (Hombre casual)", url: "/images/ponentes/ponente-3.jpg" },
-  { value: "ponente-4", label: "Ponente 4 (Mujer casual)", url: "/images/ponentes/ponente-4.jpg" },
+  {
+    value: "ponente-1",
+    label: "Ponente 1 (Hombre formal)",
+    url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%234f46e5' width='200' height='200'/%3E%3Ccircle cx='100' cy='80' r='40' fill='%23fff'/%3E%3Cpath d='M60 160c0-22 18-40 40-40s40 18 40 40v40H60z' fill='%23fff'/%3E%3C/svg%3E",
+  },
+  {
+    value: "ponente-2",
+    label: "Ponente 2 (Mujer formal)",
+    url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%23ec4899' width='200' height='200'/%3E%3Ccircle cx='100' cy='80' r='40' fill='%23fff'/%3E%3Cpath d='M60 160c0-22 18-40 40-40s40 18 40 40v40H60z' fill='%23fff'/%3E%3C/svg%3E",
+  },
+  {
+    value: "ponente-3",
+    label: "Ponente 3 (Hombre casual)",
+    url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%2310b981' width='200' height='200'/%3E%3Ccircle cx='100' cy='80' r='40' fill='%23fff'/%3E%3Cpath d='M60 160c0-22 18-40 40-40s40 18 40 40v40H60z' fill='%23fff'/%3E%3C/svg%3E",
+  },
+  {
+    value: "ponente-4",
+    label: "Ponente 4 (Mujer casual)",
+    url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%23f59e0b' width='200' height='200'/%3E%3Ccircle cx='100' cy='80' r='40' fill='%23fff'/%3E%3Cpath d='M60 160c0-22 18-40 40-40s40 18 40 40v40H60z' fill='%23fff'/%3E%3C/svg%3E",
+  },
   { value: "default", label: "Sin imagen", url: "" },
 ]
 
@@ -35,6 +51,7 @@ export function AddPonenteDialog({
   ponenteData,
 }: AddPonenteDialogProps) {
   const [loading, setLoading] = useState(false)
+  const [customImage, setCustomImage] = useState<string>("")
   const [formData, setFormData] = useState({
     nombre: "",
     numero: "",
@@ -45,13 +62,26 @@ export function AddPonenteDialog({
 
   useEffect(() => {
     if (open && editMode && ponenteData) {
-      setFormData({
-        nombre: ponenteData.nombre || "",
-        numero: ponenteData.numero || "",
-        cargo: ponenteData.cargo || "",
-        descripcion: ponenteData.descripcion || "",
-        imagen: ponenteData.imagen || "default",
-      })
+      const imagenMatch = IMAGENES_PONENTES.find((img) => img.url === ponenteData.imagen)
+      if (!imagenMatch && ponenteData.imagen) {
+        setCustomImage(ponenteData.imagen)
+        setFormData({
+          nombre: ponenteData.nombre || "",
+          numero: ponenteData.numero || "",
+          cargo: ponenteData.cargo || "",
+          descripcion: ponenteData.descripcion || "",
+          imagen: "custom",
+        })
+      } else {
+        setFormData({
+          nombre: ponenteData.nombre || "",
+          numero: ponenteData.numero || "",
+          cargo: ponenteData.cargo || "",
+          descripcion: ponenteData.descripcion || "",
+          imagen: imagenMatch?.value || "default",
+        })
+        setCustomImage("")
+      }
     } else if (!open) {
       setFormData({
         nombre: "",
@@ -60,11 +90,36 @@ export function AddPonenteDialog({
         descripcion: "",
         imagen: "default",
       })
+      setCustomImage("")
     }
   }, [open, editMode, ponenteData])
 
   const handleInputChange = useCallback((field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+  }, [])
+
+  const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validar que sea una imagen
+    if (!file.type.startsWith("image/")) {
+      alert("Por favor selecciona un archivo de imagen válido")
+      return
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert("La imagen es muy grande. Por favor selecciona una imagen menor a 10MB")
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const base64String = reader.result as string
+      setCustomImage(base64String)
+      setFormData((prev) => ({ ...prev, imagen: "custom" }))
+    }
+    reader.readAsDataURL(file)
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,8 +132,13 @@ export function AddPonenteDialog({
 
     setLoading(true)
     try {
-      const imagenSeleccionada = IMAGENES_PONENTES.find((img) => img.value === formData.imagen)
-      const imagenUrl = imagenSeleccionada?.url || ""
+      let imagenUrl = ""
+      if (formData.imagen === "custom") {
+        imagenUrl = customImage
+      } else {
+        const imagenSeleccionada = IMAGENES_PONENTES.find((img) => img.value === formData.imagen)
+        imagenUrl = imagenSeleccionada?.url || ""
+      }
 
       if (editMode && ponenteData?.id) {
         const updateData: Partial<PonenteData> = {
@@ -114,7 +174,15 @@ export function AddPonenteDialog({
     }
   }
 
-  const imagenSeleccionada = IMAGENES_PONENTES.find((img) => img.value === formData.imagen)
+  const getImagePreview = () => {
+    if (formData.imagen === "custom") {
+      return customImage
+    }
+    const imagenSeleccionada = IMAGENES_PONENTES.find((img) => img.value === formData.imagen)
+    return imagenSeleccionada?.url || ""
+  }
+
+  const imagePreview = getImagePreview()
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -186,21 +254,46 @@ export function AddPonenteDialog({
                       {img.label}
                     </SelectItem>
                   ))}
+                  <SelectItem value="custom">Cargar imagen personalizada</SelectItem>
                 </SelectContent>
               </Select>
-              {imagenSeleccionada && imagenSeleccionada.url && (
+
+              {formData.imagen === "custom" && (
+                <div className="mt-2">
+                  <Label
+                    htmlFor="custom-image"
+                    className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-emerald-300 rounded-lg cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-colors"
+                  >
+                    <Upload className="h-5 w-5 text-emerald-600" />
+                    <span className="text-sm text-emerald-700">
+                      {customImage ? "Cambiar imagen" : "Haz clic para cargar una imagen"}
+                    </span>
+                  </Label>
+                  <Input
+                    id="custom-image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Tamaño máximo: 10MB. Formatos: JPG, PNG, GIF, SVG</p>
+                </div>
+              )}
+
+              {imagePreview && (
                 <div className="mt-2 flex items-center gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
                   <div className="w-16 h-16 rounded-full overflow-hidden bg-white border-2 border-emerald-300">
                     <img
-                      src={imagenSeleccionada.url || "/placeholder.svg"}
+                      src={imagePreview || "/placeholder.svg"}
                       alt="Preview"
                       className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.src = "/diverse-avatars.png"
-                      }}
                     />
                   </div>
-                  <p className="text-sm text-emerald-700">Vista previa de la imagen seleccionada</p>
+                  <p className="text-sm text-emerald-700">
+                    {formData.imagen === "custom"
+                      ? "Imagen personalizada cargada"
+                      : "Vista previa de la imagen seleccionada"}
+                  </p>
                 </div>
               )}
             </div>

@@ -217,6 +217,7 @@ export async function getAssignedSurveys(documento: string) {
 
     const inscripciones = estudianteSnapshot.docs.map((doc) => doc.data())
     console.log("[v0] getAssignedSurveys - Inscripciones encontradas:", inscripciones.length)
+    console.log("[v0] getAssignedSurveys - Detalle de inscripciones:", inscripciones)
 
     const surveysRef = collection(db, "encuestas")
     const qSurveys = query(surveysRef, where("activa", "==", true))
@@ -230,32 +231,35 @@ export async function getAssignedSurveys(documento: string) {
 
       // Verificar asignación individual
       if (asignacion.estudiantesIndividuales?.includes(documento)) {
-        assignedSurveysMap.set(doc.id, { surveyDoc: doc, grupoAsignado: null })
+        if (!assignedSurveysMap.has(doc.id)) {
+          assignedSurveysMap.set(doc.id, { surveyDoc: doc, grupoAsignado: null })
+        }
         return
       }
 
-      // Verificar asignación por grupos - comparar con TODAS las inscripciones
       if (asignacion.grupos && asignacion.grupos.length > 0) {
         for (const inscripcion of inscripciones) {
           const grupoCoincidente = asignacion.grupos.find((grupo: any) => {
-            return (
-              (!grupo.programa || grupo.programa === inscripcion.programa) &&
-              (!grupo.grupo || grupo.grupo === inscripcion.grupo) &&
-              (!grupo.periodo || grupo.periodo === inscripcion.periodo) &&
-              (!grupo.nivel || grupo.nivel === inscripcion.nivel)
-            )
+            const matchPrograma = !grupo.programa || grupo.programa === inscripcion.programa
+            const matchGrupo = !grupo.grupo || grupo.grupo === inscripcion.grupo
+            const matchPeriodo = !grupo.periodo || grupo.periodo === inscripcion.periodo
+            const matchNivel = !grupo.nivel || grupo.nivel === inscripcion.nivel
+
+            return matchPrograma && matchGrupo && matchPeriodo && matchNivel
           })
 
           if (grupoCoincidente) {
-            // Si ya existe esta encuesta, no la agregamos de nuevo
             if (!assignedSurveysMap.has(doc.id)) {
               assignedSurveysMap.set(doc.id, {
                 surveyDoc: doc,
-                grupoAsignado: grupoCoincidente.grupo || null,
-                programaAsignado: grupoCoincidente.programa || null,
-                nivelAsignado: grupoCoincidente.nivel || null,
-                periodoAsignado: grupoCoincidente.periodo || null,
+                grupoAsignado: inscripcion.grupo || null,
+                programaAsignado: inscripcion.programa || null,
+                nivelAsignado: inscripcion.nivel || null,
+                periodoAsignado: inscripcion.periodo || null,
               })
+              console.log(
+                `[v0] Encuesta ${survey.titulo} asignada por inscripción: ${inscripcion.programa} - ${inscripcion.grupo}`,
+              )
             }
             break // Ya encontramos una coincidencia, no necesitamos seguir buscando
           }
@@ -300,7 +304,7 @@ export async function getAssignedSurveys(documento: string) {
       ),
     )
 
-    console.log("[v0] getAssignedSurveys - Encuestas asignadas:", surveysWithStatus.length)
+    console.log("[v0] getAssignedSurveys - Encuestas asignadas (sin duplicados):", surveysWithStatus.length)
     return surveysWithStatus
   } catch (error) {
     console.error("[v0] Error obteniendo encuestas asignadas:", error)

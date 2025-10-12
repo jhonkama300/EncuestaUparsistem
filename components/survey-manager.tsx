@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
+import { getPonentes } from "@/lib/ponentes"
 
 export function SurveyManager() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -49,16 +50,23 @@ export function SurveyManager() {
   const [selectedSurvey, setSelectedSurvey] = useState<any>(null)
   const [surveys, setSurveys] = useState<any[]>([])
   const [filteredSurveys, setFilteredSurveys] = useState<any[]>([])
-  const [stats, setStats] = useState({ total: 0, respuestas: 0, tasa: 0 })
+  const [stats, setStats] = useState({ total: 0, respuestas: 0, tasa: 0, estudiantesAsignados: 0 })
   const [editingSurvey, setEditingSurvey] = useState<any>(null)
   const { toast } = useToast()
 
   const [searchTerm, setSearchTerm] = useState("")
   const [filterTipo, setFilterTipo] = useState<string>("all")
+  const [filterPonente, setFilterPonente] = useState<string>("all")
+  const [filterPrograma, setFilterPrograma] = useState<string>("all")
+  const [filterGrupo, setFilterGrupo] = useState<string>("all")
   const [showFilters, setShowFilters] = useState(false)
 
+  const [ponentes, setPonentes] = useState<any[]>([])
+  const [programas, setProgramas] = useState<string[]>([])
+  const [grupos, setGrupos] = useState<string[]>([])
+
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(5) // 5 encuestas por página
+  const [itemsPerPage, setItemsPerPage] = useState(5)
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [toggleDialogOpen, setToggleDialogOpen] = useState(false)
@@ -67,7 +75,6 @@ export function SurveyManager() {
 
   useEffect(() => {
     loadStats()
-
     const unsubscribe = subscribeToAllSurveys((surveysData) => {
       setSurveys(surveysData)
     })
@@ -78,12 +85,41 @@ export function SurveyManager() {
   }, [])
 
   useEffect(() => {
+    loadFilterOptionsFromSurveys()
+  }, [surveys])
+
+  useEffect(() => {
     applyFilters()
-  }, [surveys, searchTerm, filterTipo])
+  }, [surveys, searchTerm, filterTipo, filterPonente, filterPrograma, filterGrupo])
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, filterTipo])
+  }, [searchTerm, filterTipo, filterPonente, filterPrograma, filterGrupo])
+
+  const loadFilterOptionsFromSurveys = async () => {
+    try {
+      const uniquePonenteIds = [...new Set(surveys.map((s) => s.ponenteId).filter(Boolean))]
+      const ponentesData = await getPonentes()
+      const ponentesFiltrados = ponentesData.filter((p) => uniquePonenteIds.includes(p.id))
+      setPonentes(ponentesFiltrados)
+
+      const uniqueProgramas = [...new Set(surveys.map((s) => s.programa).filter(Boolean))]
+      setProgramas(uniqueProgramas.sort())
+
+      const allGrupos = surveys.flatMap((s) => {
+        if (Array.isArray(s.grupos)) {
+          return s.grupos
+        } else if (s.grupo) {
+          return [s.grupo]
+        }
+        return []
+      })
+      const uniqueGrupos = [...new Set(allGrupos)].filter(Boolean)
+      setGrupos(uniqueGrupos.sort())
+    } catch (error) {
+      console.error("Error cargando opciones de filtros:", error)
+    }
+  }
 
   const loadStats = async () => {
     const statsData = await getSurveyStats()
@@ -97,18 +133,33 @@ export function SurveyManager() {
   const applyFilters = () => {
     let filtered = [...surveys]
 
-    // Filtro por búsqueda de texto (nombre de encuesta)
     if (searchTerm) {
       filtered = filtered.filter((s) => s.titulo?.toLowerCase().includes(searchTerm.toLowerCase()))
     }
 
-    // Filtro por tipo (seminario/diplomado)
     if (filterTipo !== "all") {
       if (filterTipo === "seminario") {
         filtered = filtered.filter((s) => s.titulo?.toUpperCase().includes("SEMINARIO"))
       } else if (filterTipo === "diplomado") {
         filtered = filtered.filter((s) => s.titulo?.toUpperCase().includes("DIPLOMADO"))
       }
+    }
+
+    if (filterPonente !== "all") {
+      filtered = filtered.filter((s) => s.ponenteId === filterPonente)
+    }
+
+    if (filterPrograma !== "all") {
+      filtered = filtered.filter((s) => s.programa === filterPrograma)
+    }
+
+    if (filterGrupo !== "all") {
+      filtered = filtered.filter((s) => {
+        if (s.grupos && Array.isArray(s.grupos)) {
+          return s.grupos.includes(filterGrupo)
+        }
+        return false
+      })
     }
 
     setFilteredSurveys(filtered)
@@ -246,6 +297,9 @@ export function SurveyManager() {
         <div className="text-sm text-gray-600">
           Mostrando {startIndex + 1} - {Math.min(endIndex, filteredSurveys.length)} de {filteredSurveys.length}{" "}
           encuestas
+          <span className="ml-2 text-gray-500">
+            (Página {currentPage} de {totalPages})
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <Label className="text-sm text-gray-600">Mostrar:</Label>
@@ -356,8 +410,10 @@ export function SurveyManager() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-700">{stats.respuestas}</div>
-            <p className="text-xs text-gray-600 mt-1">Estudiantes han respondido</p>
+            <div className="text-3xl font-bold text-green-700">
+              {stats.respuestas} / {stats.estudiantesAsignados}
+            </div>
+            <p className="text-xs text-gray-600 mt-1">Respuestas / Asignados</p>
           </CardContent>
         </Card>
 
@@ -392,21 +448,22 @@ export function SurveyManager() {
         {showFilters && (
           <Card className="mb-4 border-emerald-200 bg-emerald-50/50">
             <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Buscar por nombre</Label>
+                  <Label className="text-sm font-medium text-gray-700">Buscar por nombre</Label>
                   <Input
                     type="text"
                     placeholder="Nombre de la encuesta..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
+                    className="h-10"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Tipo</Label>
+                  <Label className="text-sm font-medium text-gray-700">Tipo</Label>
                   <Select value={filterTipo} onValueChange={setFilterTipo}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-10">
                       <SelectValue placeholder="Todos" />
                     </SelectTrigger>
                     <SelectContent>
@@ -416,10 +473,65 @@ export function SurveyManager() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">Ponente</Label>
+                  <Select value={filterPonente} onValueChange={setFilterPonente}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los ponentes</SelectItem>
+                      {ponentes.map((ponente) => (
+                        <SelectItem key={ponente.id} value={ponente.id}>
+                          {ponente.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">Programa</Label>
+                  <Select value={filterPrograma} onValueChange={setFilterPrograma}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los programas</SelectItem>
+                      {programas.map((programa) => (
+                        <SelectItem key={programa} value={programa}>
+                          {programa}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">Grupo</Label>
+                  <Select value={filterGrupo} onValueChange={setFilterGrupo}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los grupos</SelectItem>
+                      {grupos.map((grupo) => (
+                        <SelectItem key={grupo} value={grupo}>
+                          {grupo}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              {(searchTerm || filterTipo !== "all") && (
-                <div className="mt-4 flex items-center justify-between">
+              {(searchTerm ||
+                filterTipo !== "all" ||
+                filterPonente !== "all" ||
+                filterPrograma !== "all" ||
+                filterGrupo !== "all") && (
+                <div className="mt-4 flex items-center justify-between pt-4 border-t border-emerald-200">
                   <p className="text-sm text-gray-600">
                     Mostrando {filteredSurveys.length} de {surveys.length} encuestas
                   </p>
@@ -429,8 +541,11 @@ export function SurveyManager() {
                     onClick={() => {
                       setSearchTerm("")
                       setFilterTipo("all")
+                      setFilterPonente("all")
+                      setFilterPrograma("all")
+                      setFilterGrupo("all")
                     }}
-                    className="text-emerald-700 hover:text-emerald-800"
+                    className="text-emerald-700 hover:text-emerald-800 hover:bg-emerald-100"
                   >
                     Limpiar Filtros
                   </Button>

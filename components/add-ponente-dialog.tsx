@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { UserPlus, Loader2, Pencil } from "lucide-react"
+import { UserPlus, Loader2, Pencil, ImageIcon } from "lucide-react"
 import { addPonente, updatePonente } from "@/lib/ponentes"
 import type { PonenteData } from "@/lib/ponentes"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface AddPonenteDialogProps {
   open: boolean
@@ -17,6 +18,14 @@ interface AddPonenteDialogProps {
   editMode?: boolean
   ponenteData?: any
 }
+
+const IMAGENES_PONENTES = [
+  { value: "ponente-1", label: "Ponente 1 (Hombre formal)", url: "/images/ponentes/ponente-1.jpg" },
+  { value: "ponente-2", label: "Ponente 2 (Mujer formal)", url: "/images/ponentes/ponente-2.jpg" },
+  { value: "ponente-3", label: "Ponente 3 (Hombre casual)", url: "/images/ponentes/ponente-3.jpg" },
+  { value: "ponente-4", label: "Ponente 4 (Mujer casual)", url: "/images/ponentes/ponente-4.jpg" },
+  { value: "default", label: "Sin imagen", url: "" },
+]
 
 export function AddPonenteDialog({
   open,
@@ -31,6 +40,7 @@ export function AddPonenteDialog({
     numero: "",
     cargo: "",
     descripcion: "",
+    imagen: "default",
   })
 
   useEffect(() => {
@@ -40,6 +50,7 @@ export function AddPonenteDialog({
         numero: ponenteData.numero || "",
         cargo: ponenteData.cargo || "",
         descripcion: ponenteData.descripcion || "",
+        imagen: ponenteData.imagen || "default",
       })
     } else if (!open) {
       setFormData({
@@ -47,6 +58,7 @@ export function AddPonenteDialog({
         numero: "",
         cargo: "",
         descripcion: "",
+        imagen: "default",
       })
     }
   }, [open, editMode, ponenteData])
@@ -65,12 +77,16 @@ export function AddPonenteDialog({
 
     setLoading(true)
     try {
+      const imagenSeleccionada = IMAGENES_PONENTES.find((img) => img.value === formData.imagen)
+      const imagenUrl = imagenSeleccionada?.url || ""
+
       if (editMode && ponenteData?.id) {
         const updateData: Partial<PonenteData> = {
           nombre: formData.nombre,
           numero: formData.numero || undefined,
           cargo: formData.cargo || undefined,
           descripcion: formData.descripcion,
+          imagen: imagenUrl,
         }
         await updatePonente(ponenteData.id, updateData)
         alert("Ponente actualizado exitosamente")
@@ -80,6 +96,7 @@ export function AddPonenteDialog({
           numero: formData.numero || undefined,
           cargo: formData.cargo || undefined,
           descripcion: formData.descripcion,
+          imagen: imagenUrl,
           fechaCreacion: new Date().toISOString(),
           activo: true,
         }
@@ -96,6 +113,8 @@ export function AddPonenteDialog({
       setLoading(false)
     }
   }
+
+  const imagenSeleccionada = IMAGENES_PONENTES.find((img) => img.value === formData.imagen)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -150,6 +169,40 @@ export function AddPonenteDialog({
                 placeholder="Ej: Director de Investigación"
                 className="border-emerald-200 focus:border-emerald-500 focus:ring-emerald-500"
               />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="imagen" className="text-emerald-900 flex items-center gap-2">
+                <ImageIcon className="h-4 w-4" />
+                Imagen del Ponente
+              </Label>
+              <Select value={formData.imagen} onValueChange={(value) => handleInputChange("imagen", value)}>
+                <SelectTrigger className="border-emerald-200 focus:border-emerald-500">
+                  <SelectValue placeholder="Seleccionar imagen" />
+                </SelectTrigger>
+                <SelectContent>
+                  {IMAGENES_PONENTES.map((img) => (
+                    <SelectItem key={img.value} value={img.value}>
+                      {img.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {imagenSeleccionada && imagenSeleccionada.url && (
+                <div className="mt-2 flex items-center gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-white border-2 border-emerald-300">
+                    <img
+                      src={imagenSeleccionada.url || "/placeholder.svg"}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = "/diverse-avatars.png"
+                      }}
+                    />
+                  </div>
+                  <p className="text-sm text-emerald-700">Vista previa de la imagen seleccionada</p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2 md:col-span-2">

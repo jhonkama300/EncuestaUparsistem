@@ -66,7 +66,7 @@ export function AdvancedStatisticsView() {
         setSelectedSurveyId(surveysData[0].id)
       }
     } catch (error) {
-      console.error("[v0] Error cargando datos:", error)
+      console.error("Error cargando datos:", error)
     } finally {
       setLoading(false)
     }
@@ -76,10 +76,11 @@ export function AdvancedStatisticsView() {
     setLoading(true)
     try {
       const data = await getSurveyResponses(surveyId)
-      console.log("[v0] Respuestas cargadas:", data)
-      setResponses(Array.isArray(data) ? data : [])
+      const respuestasArray = data?.respuestas || []
+      setResponses(Array.isArray(respuestasArray) ? respuestasArray : [])
+      console.log("[v0] Respuestas cargadas:", respuestasArray.length)
     } catch (error) {
-      console.error("[v0] Error cargando respuestas:", error)
+      console.error("Error cargando respuestas:", error)
       setResponses([])
     } finally {
       setLoading(false)
@@ -95,10 +96,26 @@ export function AdvancedStatisticsView() {
     return surveys.filter((survey) => survey.ponenteId === selectedPonenteId)
   }, [surveys, selectedPonenteId])
 
+  useEffect(() => {
+    if (selectedPonenteId !== "all" && filteredSurveys.length > 0) {
+      const currentSurveyInFilter = filteredSurveys.find((s) => s.id === selectedSurveyId)
+      if (!currentSurveyInFilter) {
+        setSelectedSurveyId(filteredSurveys[0].id)
+      }
+    }
+  }, [selectedPonenteId, filteredSurveys, selectedSurveyId])
+
   const statistics = useMemo(() => {
     if (!selectedSurvey || !selectedSurvey.preguntas || !Array.isArray(responses) || responses.length === 0) {
+      console.log("[v0] No hay datos para calcular estadísticas:", {
+        selectedSurvey: !!selectedSurvey,
+        preguntas: selectedSurvey?.preguntas?.length,
+        responses: responses.length,
+      })
       return null
     }
+
+    console.log("[v0] Calculando estadísticas con", responses.length, "respuestas")
 
     const questions = selectedSurvey.preguntas || []
     const questionStats = questions.map((question: any, index: number) => {
@@ -207,6 +224,12 @@ export function AdvancedStatisticsView() {
         satisfaccion: Number(stat.satisfactionTrend),
       }))
 
+    console.log("[v0] Estadísticas calculadas:", {
+      questionStats: questionStats.length,
+      overallAverage,
+      totalResponses: responses.length,
+    })
+
     return {
       questionStats,
       overallAverage: overallAverage.toFixed(2),
@@ -249,9 +272,47 @@ export function AdvancedStatisticsView() {
     )
   }
 
+  if (filteredSurveys.length === 0) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-emerald-600" />
+              Análisis Estadístico Avanzado
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Filtrar por Ponente</label>
+              <Select value={selectedPonenteId} onValueChange={setSelectedPonenteId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Todos los ponentes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los ponentes</SelectItem>
+                  {ponentes.map((ponente) => (
+                    <SelectItem key={ponente.id} value={ponente.id}>
+                      {ponente.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-600">No hay encuestas para el ponente seleccionado</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
-      {/* Selector de Encuesta y Ponente */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg font-semibold flex items-center gap-2">

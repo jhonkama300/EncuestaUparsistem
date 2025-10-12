@@ -196,6 +196,8 @@ export async function getUniqueStudentValues() {
   }
 }
 
+export const getStudentFilters = getUniqueStudentValues
+
 export async function getStudentsByFilters(filtros: {
   jornada?: string
   programa?: string

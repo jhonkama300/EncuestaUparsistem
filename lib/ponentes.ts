@@ -12,6 +12,7 @@ export interface PonenteData {
   grupo?: string
   periodo?: string
   nivel?: string
+  imagen?: string // Added imagen field
   fechaCreacion: string
   activo: boolean
 }
@@ -168,5 +169,72 @@ export function subscribeToPonentes(callback: (ponentes: any[]) => void) {
   } catch (error) {
     console.error("Error suscribiéndose a ponentes:", error)
     return () => {}
+  }
+}
+
+export async function calculatePonenteAverageRating(ponenteId: string): Promise<number> {
+  try {
+    console.log("[v0] Calculando promedio de calificaciones para ponente:", ponenteId)
+
+    // Obtener todas las encuestas del ponente
+    const surveysRef = collection(db, "encuestas")
+    const qSurveys = query(surveysRef, where("ponenteId", "==", ponenteId))
+    const surveysSnapshot = await getDocs(qSurveys)
+
+    if (surveysSnapshot.empty) {
+      console.log("[v0] No hay encuestas para este ponente")
+      return 0
+    }
+
+    const surveyIds = surveysSnapshot.docs.map((doc) => doc.id)
+    console.log("[v0] Encuestas encontradas:", surveyIds.length)
+
+    // Obtener todas las respuestas de esas encuestas
+    const respuestasRef = collection(db, "respuestas")
+    let totalSum = 0
+    let totalCount = 0
+
+    for (const surveyId of surveyIds) {
+      const qRespuestas = query(respuestasRef, where("encuestaId", "==", surveyId))
+      const respuestasSnapshot = await getDocs(qRespuestas)
+
+      // Obtener las preguntas de la encuesta
+      const surveyDoc = surveysSnapshot.docs.find((doc) => doc.id === surveyId)
+      const preguntas = surveyDoc?.data().preguntas || []
+
+      respuestasSnapshot.docs.forEach((respuestaDoc) => {
+        const respuesta = respuestaDoc.data()
+        const respuestas = respuesta.respuestas || {}
+
+        // Procesar cada respuesta
+        Object.keys(respuestas).forEach((key) => {
+          const answer = respuestas[key]
+          const answerStr = String(answer).toLowerCase().trim()
+
+          // Mapeo de respuestas a valores numéricos
+          const SCALE_VALUES: Record<string, number> = {
+            excelente: 5,
+            bueno: 4,
+            aceptable: 3,
+            regular: 2,
+            malo: 1,
+          }
+
+          const value = SCALE_VALUES[answerStr]
+          if (value !== undefined && !isNaN(value)) {
+            totalSum += value
+            totalCount++
+          }
+        })
+      })
+    }
+
+    const average = totalCount > 0 ? totalSum / totalCount : 0
+    console.log("[v0] Promedio calculado:", average, "de", totalCount, "respuestas")
+
+    return average
+  } catch (error) {
+    console.error("[v0] Error calculando promedio de calificaciones:", error)
+    return 0
   }
 }

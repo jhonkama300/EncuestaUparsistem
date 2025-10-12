@@ -413,7 +413,7 @@ export function StudentUploader(): ReactElement {
           <p className="text-gray-600">Carga, visualiza y administra los estudiantes registrados</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setShowAddStudentDialog(true)} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={() => setShowAddStudentDialog(true)} className="bg-green-600 hover:bg-green-700">
             <UserPlus className="h-4 w-4 mr-2" />
             Agregar un Estudiante
           </Button>
@@ -625,6 +625,62 @@ export function StudentUploader(): ReactElement {
               <p className="text-center text-gray-600 py-8">No se encontraron estudiantes</p>
             ) : (
               <>
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-4 pb-2">
+                    <p className="text-sm text-gray-600">
+                      Mostrando {startIndex + 1} - {Math.min(endIndex, filteredStudents.length)} de{" "}
+                      {filteredStudents.length} estudiantes
+                      <span className="ml-2 text-gray-500">
+                        (Página {currentPage} de {totalPages})
+                      </span>
+                    </p>
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                            className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                          if (
+                            page === 1 ||
+                            page === totalPages ||
+                            (page >= currentPage - 1 && page <= currentPage + 1)
+                          ) {
+                            return (
+                              <PaginationItem key={page}>
+                                <PaginationLink
+                                  onClick={() => setCurrentPage(page)}
+                                  isActive={currentPage === page}
+                                  className="cursor-pointer"
+                                >
+                                  {page}
+                                </PaginationLink>
+                              </PaginationItem>
+                            )
+                          } else if (page === currentPage - 2 || page === currentPage + 2) {
+                            return (
+                              <PaginationItem key={page}>
+                                <PaginationEllipsis />
+                              </PaginationItem>
+                            )
+                          }
+                          return null
+                        })}
+
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                            className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
+
                 <div className="border rounded-lg overflow-hidden">
                   <div className="max-h-96 overflow-y-auto">
                     <table className="w-full text-sm">
@@ -659,6 +715,9 @@ export function StudentUploader(): ReactElement {
                     <p className="text-sm text-gray-600">
                       Mostrando {startIndex + 1} - {Math.min(endIndex, filteredStudents.length)} de{" "}
                       {filteredStudents.length} estudiantes
+                      <span className="ml-2 text-gray-500">
+                        (Página {currentPage} de {totalPages})
+                      </span>
                     </p>
                     <Pagination>
                       <PaginationContent>

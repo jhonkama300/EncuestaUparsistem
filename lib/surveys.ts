@@ -398,23 +398,54 @@ export async function getSurveyStats() {
     const respuestasRef = collection(db, "respuestas")
     const respuestasSnapshot2 = await getDocs(respuestasRef)
 
-    const estudiantesRef = collection(db, "estudiantes")
-    const estudiantesSnapshot = await getDocs(estudiantesRef)
+    let totalEstudiantesAsignados = 0
+
+    for (const surveyDoc of surveysSnapshot.docs) {
+      const surveyData = surveyDoc.data()
+      const asignacion = surveyData.asignacion || {}
+
+      // Contar estudiantes individuales asignados
+      if (asignacion.estudiantesIndividuales && Array.isArray(asignacion.estudiantesIndividuales)) {
+        totalEstudiantesAsignados += asignacion.estudiantesIndividuales.length
+      }
+
+      // Contar estudiantes asignados por grupos
+      if (asignacion.grupos && Array.isArray(asignacion.grupos) && asignacion.grupos.length > 0) {
+        const estudiantesRef = collection(db, "estudiantes")
+        const estudiantesSnapshot = await getDocs(estudiantesRef)
+
+        estudiantesSnapshot.docs.forEach((estudianteDoc) => {
+          const estudiante = estudianteDoc.data()
+          const isAssigned = asignacion.grupos.some((grupo: any) => {
+            return (
+              (!grupo.programa || grupo.programa === estudiante.programa) &&
+              (!grupo.grupo || grupo.grupo === estudiante.grupo) &&
+              (!grupo.periodo || grupo.periodo === estudiante.periodo) &&
+              (!grupo.nivel || grupo.nivel === estudiante.nivel)
+            )
+          })
+
+          if (isAssigned && !asignacion.estudiantesIndividuales?.includes(estudiante.documento)) {
+            totalEstudiantesAsignados++
+          }
+        })
+      }
+    }
 
     const totalSurveys = surveysSnapshot.size
     const totalRespuestas = respuestasSnapshot2.size
-    const totalEstudiantes = estudiantesSnapshot.size
 
-    const tasa = totalEstudiantes > 0 ? Math.round((totalRespuestas / (totalEstudiantes * totalSurveys)) * 100) : 0
+    const tasa = totalEstudiantesAsignados > 0 ? Math.round((totalRespuestas / totalEstudiantesAsignados) * 100) : 0
 
     return {
       total: totalSurveys,
       respuestas: totalRespuestas,
       tasa,
+      estudiantesAsignados: totalEstudiantesAsignados,
     }
   } catch (error) {
     console.error("Error obteniendo estadísticas:", error)
-    return { total: 0, respuestas: 0, tasa: 0 }
+    return { total: 0, respuestas: 0, tasa: 0, estudiantesAsignados: 0 }
   }
 }
 

@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { UserPlus, Pencil, Trash2, Search, ChevronLeft, ChevronRight } from "lucide-react"
+import { UserPlus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Star } from "lucide-react"
 import { getPonentes, deletePonente } from "@/lib/ponentes"
 import { AddPonenteDialog } from "./add-ponente-dialog"
+import { collection, getDocs, query, where } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const ITEMS_PER_PAGE = 10
 
@@ -30,6 +33,7 @@ export function PonenteUploader() {
   const [searchTerm, setSearchTerm] = useState("")
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [ponenteToDelete, setPonenteToDelete] = useState<any>(null)
+  const [calificaciones, setCalificaciones] = useState<Record<string, number>>({})
 
   useEffect(() => {
     loadPonentes()
@@ -39,9 +43,82 @@ export function PonenteUploader() {
     applyFilters()
   }, [ponentes, searchTerm])
 
+  useEffect(() => {
+    if (ponentes.length > 0) {
+      loadCalificaciones()
+    }
+  }, [ponentes])
+
   const loadPonentes = async () => {
     const data = await getPonentes()
     setPonentes(data)
+  }
+
+  const loadCalificaciones = async () => {
+    try {
+      const encuestasRef = collection(db, "encuestas")
+      const respuestasRef = collection(db, "respuestas")
+
+      const calificacionesPorPonente: Record<string, { suma: number; count: number }> = {}
+
+      for (const ponente of ponentes) {
+        // Buscar encuestas de este ponente
+        const qEncuestas = query(encuestasRef, where("ponenteId", "==", ponente.id))
+        const encuestasSnapshot = await getDocs(qEncuestas)
+
+        let sumaCalificaciones = 0
+        let totalRespuestas = 0
+
+        for (const encuestaDoc of encuestasSnapshot.docs) {
+          // Buscar respuestas de esta encuesta
+          const qRespuestas = query(respuestasRef, where("encuestaId", "==", encuestaDoc.id))
+          const respuestasSnapshot = await getDocs(qRespuestas)
+
+          respuestasSnapshot.docs.forEach((respuestaDoc) => {
+            const respuestaData = respuestaDoc.data()
+            const respuestas = respuestaData.respuestas || {}
+
+            // Mapeo de respuestas a valores numéricos
+            const SCALE_VALUES: Record<string, number> = {
+              excelente: 5,
+              bueno: 4,
+              aceptable: 3,
+              regular: 2,
+              malo: 1,
+            }
+
+            // Procesar cada respuesta
+            Object.keys(respuestas).forEach((key) => {
+              const answer = respuestas[key]
+              const answerStr = String(answer).toLowerCase().trim()
+
+              const value = SCALE_VALUES[answerStr]
+              if (value !== undefined && !isNaN(value)) {
+                sumaCalificaciones += value
+                totalRespuestas++
+              }
+            })
+          })
+        }
+
+        if (totalRespuestas > 0) {
+          calificacionesPorPonente[ponente.id] = {
+            suma: sumaCalificaciones,
+            count: totalRespuestas,
+          }
+        }
+      }
+
+      // Calcular promedios
+      const promedios: Record<string, number> = {}
+      Object.entries(calificacionesPorPonente).forEach(([ponenteId, data]) => {
+        promedios[ponenteId] = data.suma / data.count
+      })
+
+      setCalificaciones(promedios)
+    } catch (error) {
+      console.error("Error cargando calificaciones:", error)
+    }
   }
 
   const applyFilters = () => {
@@ -91,6 +168,31 @@ export function PonenteUploader() {
     setEditMode(true)
     setSelectedPonente(ponente)
     setDialogOpen(true)
+  }
+
+  const renderStars = (calificacion: number) => {
+    const stars = []
+    const fullStars = Math.floor(calificacion)
+    const hasHalfStar = calificacion % 1 >= 0.5
+
+    for (let i = 0; i < 5; i++) {
+      if (i < fullStars) {
+        stars.push(<Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />)
+      } else if (i === fullStars && hasHalfStar) {
+        stars.push(
+          <div key={i} className="relative">
+            <Star className="h-4 w-4 text-gray-300" />
+            <div className="absolute inset-0 overflow-hidden w-1/2">
+              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+            </div>
+          </div>,
+        )
+      } else {
+        stars.push(<Star key={i} className="h-4 w-4 text-gray-300" />)
+      }
+    }
+
+    return stars
   }
 
   const totalPages = Math.ceil(filteredPonentes.length / ITEMS_PER_PAGE)
@@ -181,42 +283,68 @@ export function PonenteUploader() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead>Imagen</TableHead>
                         <TableHead>Nombre</TableHead>
                         <TableHead>Número</TableHead>
                         <TableHead>Cargo</TableHead>
+                        <TableHead>Calificación</TableHead>
                         <TableHead>Descripción</TableHead>
                         <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {currentPonentes.map((ponente) => (
-                        <TableRow key={ponente.id}>
-                          <TableCell className="font-medium">{ponente.nombre}</TableCell>
-                          <TableCell>{ponente.numero || "-"}</TableCell>
-                          <TableCell>{ponente.cargo || "-"}</TableCell>
-                          <TableCell className="max-w-xs truncate">{ponente.descripcion}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex gap-2 justify-end">
-                              <Button
-                                size="icon"
-                                variant="outline"
-                                className="h-8 w-8 border-emerald-300 text-emerald-600 hover:bg-emerald-50 bg-transparent"
-                                onClick={() => handleEdit(ponente)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="outline"
-                                className="h-8 w-8 border-red-300 text-red-600 hover:bg-red-50 bg-transparent"
-                                onClick={() => handleDeleteClick(ponente)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {currentPonentes.map((ponente) => {
+                        const calificacion = calificaciones[ponente.id]
+                        return (
+                          <TableRow key={ponente.id}>
+                            <TableCell>
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage
+                                  src={ponente.imagen || "/placeholder.svg?height=40&width=40&query=avatar"}
+                                  alt={ponente.nombre}
+                                />
+                                <AvatarFallback className="bg-emerald-100 text-emerald-700">
+                                  {ponente.nombre.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                            </TableCell>
+                            <TableCell className="font-medium">{ponente.nombre}</TableCell>
+                            <TableCell>{ponente.numero || "-"}</TableCell>
+                            <TableCell>{ponente.cargo || "-"}</TableCell>
+                            <TableCell>
+                              {calificacion ? (
+                                <div className="flex items-center gap-2">
+                                  <div className="flex gap-0.5">{renderStars(calificacion)}</div>
+                                  <span className="text-sm font-semibold text-gray-700">{calificacion.toFixed(1)}</span>
+                                </div>
+                              ) : (
+                                <span className="text-sm text-gray-400">Sin calificaciones</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="max-w-xs truncate">{ponente.descripcion}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex gap-2 justify-end">
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  className="h-8 w-8 border-emerald-300 text-emerald-600 hover:bg-emerald-50 bg-transparent"
+                                  onClick={() => handleEdit(ponente)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  className="h-8 w-8 border-red-300 text-red-600 hover:bg-red-50 bg-transparent"
+                                  onClick={() => handleDeleteClick(ponente)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
                     </TableBody>
                   </Table>
                 </div>

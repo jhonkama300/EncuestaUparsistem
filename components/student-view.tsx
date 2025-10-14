@@ -102,49 +102,65 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <CardTitle className="text-emerald-800">{survey.titulo}</CardTitle>
-            <CardDescription className="mt-1">{survey.descripcion}</CardDescription>
-            {survey.ponenteNombre && (
-              <p className="text-sm text-emerald-600 font-medium mt-2">👤 Ponente: {survey.ponenteNombre}</p>
-            )}
+            <CardDescription className="mt-2">{survey.descripcion}</CardDescription>
           </div>
-          {survey.completada && <CheckCircle2 className="h-6 w-6 text-emerald-600" />}
+          {survey.completada && <CheckCircle2 className="h-6 w-6 text-emerald-600 flex-shrink-0" />}
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {(survey.programaAsignado || survey.programa) && (
-            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-              {survey.programaAsignado || survey.programa}
-            </Badge>
-          )}
-          {(survey.nivelAsignado || survey.nivel) && (
-            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
-              Nivel: {survey.nivelAsignado || survey.nivel}
-            </Badge>
-          )}
-          {(survey.periodoAsignado || survey.periodo) && (
-            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-              {survey.periodoAsignado || survey.periodo}
-            </Badge>
-          )}
-          {(survey.grupoAsignado || survey.grupo) && (
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-              Grupo {survey.grupoAsignado || survey.grupo}
-            </Badge>
-          )}
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-600">
-            <p>{survey.preguntas?.length || 0} preguntas</p>
+      <CardContent className="space-y-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex flex-wrap gap-2 mb-3">
+              {(survey.programaAsignado || survey.programa) && (
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                  {survey.programaAsignado || survey.programa}
+                </Badge>
+              )}
+              {(survey.nivelAsignado || survey.nivel) && (
+                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                  Nivel: {survey.nivelAsignado || survey.nivel}
+                </Badge>
+              )}
+              {(survey.periodoAsignado || survey.periodo) && (
+                <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                  {survey.periodoAsignado || survey.periodo}
+                </Badge>
+              )}
+              {(survey.grupoAsignado || survey.grupo) && (
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  Grupo {survey.grupoAsignado || survey.grupo}
+                </Badge>
+              )}
+            </div>
+            <p className="text-sm text-gray-700">
+              <span className="font-semibold">{survey.preguntas?.length || 0}</span> preguntas
+            </p>
           </div>
-          <Button
-            onClick={() => setSelectedSurvey(survey)}
-            disabled={survey.completada}
-            className="bg-emerald-600 hover:bg-emerald-700"
-          >
-            {survey.completada ? "Completada" : "Responder"}
-          </Button>
+
+          {survey.ponenteNombre && (
+            <div className="md:w-64 p-4 bg-amber-50 rounded-lg border border-amber-200">
+              <p className="text-xs text-amber-700 font-semibold mb-3 uppercase tracking-wide">Ponente</p>
+              <div className="flex items-center gap-3">
+                {survey.ponenteImagen && (
+                  <img
+                    src={survey.ponenteImagen || "/placeholder.svg"}
+                    alt={survey.ponenteNombre}
+                    className="w-14 h-14 rounded-full object-cover border-3 border-amber-300 shadow-md flex-shrink-0"
+                  />
+                )}
+                <p className="text-sm text-amber-900 font-bold leading-tight">{survey.ponenteNombre}</p>
+              </div>
+            </div>
+          )}
         </div>
+
+        <Button
+          onClick={() => setSelectedSurvey(survey)}
+          disabled={survey.completada}
+          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-6 text-base"
+        >
+          {survey.completada ? "Completada" : "Responder"}
+        </Button>
       </CardContent>
     </Card>
   )

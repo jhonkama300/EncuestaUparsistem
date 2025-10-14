@@ -10,6 +10,7 @@ import { collection, query, where, onSnapshot } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 
 interface StudentViewProps {
   user: UserData
@@ -48,6 +49,16 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
       console.log("[v0] Cargando encuestas para:", user.documento)
       const assignedSurveys = await getAssignedSurveys(user.documento)
       console.log("[v0] Encuestas cargadas:", assignedSurveys.length)
+      assignedSurveys.forEach((survey) => {
+        console.log(
+          "[v0] Encuesta:",
+          survey.titulo,
+          "- Ponente:",
+          survey.ponenteNombre,
+          "- Imagen:",
+          survey.ponenteImagen ? "SÍ" : "NO",
+        )
+      })
       setSurveys(assignedSurveys)
     } catch (error) {
       console.error("[v0] Error cargando encuestas:", error)
@@ -141,13 +152,22 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
             <div className="md:w-64 p-4 bg-amber-50 rounded-lg border border-amber-200">
               <p className="text-xs text-amber-700 font-semibold mb-3 uppercase tracking-wide">Ponente</p>
               <div className="flex items-center gap-3">
-                {survey.ponenteImagen && (
-                  <img
-                    src={survey.ponenteImagen || "/placeholder.svg"}
-                    alt={survey.ponenteNombre}
-                    className="w-14 h-14 rounded-full object-cover border-3 border-amber-300 shadow-md flex-shrink-0"
-                  />
-                )}
+                <Avatar className="w-14 h-14 border-3 border-amber-300 shadow-md">
+                  {survey.ponenteImagen && (
+                    <AvatarImage
+                      src={survey.ponenteImagen || "/placeholder.svg"}
+                      alt={survey.ponenteNombre}
+                      className="object-cover"
+                    />
+                  )}
+                  <AvatarFallback className="bg-amber-200 text-amber-800 font-bold text-lg">
+                    {survey.ponenteNombre
+                      .split(" ")
+                      .map((n: string) => n[0])
+                      .join("")
+                      .substring(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
                 <p className="text-sm text-amber-900 font-bold leading-tight">{survey.ponenteNombre}</p>
               </div>
             </div>

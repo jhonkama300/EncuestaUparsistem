@@ -217,7 +217,6 @@ export async function getAssignedSurveys(documento: string) {
 
     const inscripciones = estudianteSnapshot.docs.map((doc) => doc.data())
     console.log("[v0] getAssignedSurveys - Inscripciones encontradas:", inscripciones.length)
-    console.log("[v0] getAssignedSurveys - Detalle de inscripciones:", inscripciones)
 
     const surveysRef = collection(db, "encuestas")
     const qSurveys = query(surveysRef, where("activa", "==", true))
@@ -257,11 +256,8 @@ export async function getAssignedSurveys(documento: string) {
                 nivelAsignado: inscripcion.nivel || null,
                 periodoAsignado: inscripcion.periodo || null,
               })
-              console.log(
-                `[v0] Encuesta ${survey.titulo} asignada por inscripción: ${inscripcion.programa} - ${inscripcion.grupo}`,
-              )
             }
-            break // Ya encontramos una coincidencia, no necesitamos seguir buscando
+            break
           }
         }
       }
@@ -282,11 +278,22 @@ export async function getAssignedSurveys(documento: string) {
           const respuestaSnapshot = await getDocs(qRespuesta)
 
           let ponenteNombre = null
+          let ponenteImagen = null
+
           if (surveyData.ponenteId) {
-            const qPonente = query(ponentesRef, where("__name__", "==", surveyData.ponenteId))
-            const ponenteSnapshot = await getDocs(qPonente)
-            if (!ponenteSnapshot.empty) {
-              ponenteNombre = ponenteSnapshot.docs[0].data().nombre
+            console.log("[v0] Buscando ponente con ID:", surveyData.ponenteId)
+            const ponenteDocRef = doc(db, "ponentes", surveyData.ponenteId)
+            const ponenteDoc = await getDocs(
+              query(collection(db, "ponentes"), where("__name__", "==", surveyData.ponenteId)),
+            )
+
+            if (!ponenteDoc.empty) {
+              const ponenteData = ponenteDoc.docs[0].data()
+              ponenteNombre = ponenteData.nombre
+              ponenteImagen = ponenteData.imagen
+              console.log("[v0] Ponente encontrado:", ponenteNombre, "- Tiene imagen:", ponenteImagen ? "SÍ" : "NO")
+            } else {
+              console.log("[v0] Ponente no encontrado para ID:", surveyData.ponenteId)
             }
           }
 
@@ -299,6 +306,7 @@ export async function getAssignedSurveys(documento: string) {
             periodoAsignado,
             completada: !respuestaSnapshot.empty,
             ponenteNombre,
+            ponenteImagen,
           }
         },
       ),

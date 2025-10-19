@@ -6,9 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Plus, X, Users, UserCheck, Filter } from "lucide-react"
+import { Plus, X, Users, UserCheck, Filter, Check, ChevronsUpDown } from "lucide-react"
 import { getUniqueStudentValues, getStudentsByFilters } from "@/lib/students"
 import { getPonentes } from "@/lib/ponentes"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 
 interface SurveyAssignmentSelectorProps {
   ponenteId: string
@@ -39,6 +42,7 @@ export function SurveyAssignmentSelector({
     niveles: [],
   })
   const [ponentes, setPonentes] = useState<any[]>([])
+  const [openPonenteSearch, setOpenPonenteSearch] = useState(false)
 
   const [filterPrograma, setFilterPrograma] = useState("")
   const [filterNivel, setFilterNivel] = useState("")
@@ -196,25 +200,64 @@ export function SurveyAssignmentSelector({
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label className="text-sm">Ponente *</Label>
-            <div className="relative">
-              <Input
-                type="text"
-                placeholder="Buscar ponente..."
-                value={selectedPonente?.nombre || ""}
-                onChange={(e) => {
-                  const search = e.target.value.toLowerCase()
-                  const found = ponentes.find((p) => p.nombre.toLowerCase().includes(search))
-                  if (found) onPonenteChange(found.id)
-                }}
-                list="ponentes-list"
-                className="w-full"
-              />
-              <datalist id="ponentes-list">
-                {ponentes.map((ponente) => (
-                  <option key={ponente.id} value={ponente.nombre} />
-                ))}
-              </datalist>
-            </div>
+            <Popover open={openPonenteSearch} onOpenChange={setOpenPonenteSearch}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openPonenteSearch}
+                  className="w-full justify-between h-auto min-h-[40px] py-2 bg-transparent"
+                >
+                  {selectedPonente ? (
+                    <div className="flex flex-col items-start gap-1 text-left">
+                      <span className="font-medium">{selectedPonente.nombre}</span>
+                      {selectedPonente.cargo && (
+                        <span className="text-xs text-muted-foreground">{selectedPonente.cargo}</span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">Buscar y seleccionar ponente...</span>
+                  )}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[400px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar ponente por nombre, cargo o número..." />
+                  <CommandList>
+                    <CommandEmpty>No se encontraron ponentes.</CommandEmpty>
+                    <CommandGroup>
+                      {ponentes.map((ponente) => (
+                        <CommandItem
+                          key={ponente.id}
+                          value={`${ponente.nombre} ${ponente.cargo || ""} ${ponente.numero || ""}`}
+                          onSelect={() => {
+                            onPonenteChange(ponente.id === ponenteId ? "" : ponente.id)
+                            setOpenPonenteSearch(false)
+                          }}
+                          className="flex items-start gap-2 py-3"
+                        >
+                          <Check
+                            className={cn(
+                              "mt-1 h-4 w-4 shrink-0",
+                              ponenteId === ponente.id ? "opacity-100" : "opacity-0",
+                            )}
+                          />
+                          <div className="flex flex-col gap-1 flex-1">
+                            <span className="font-medium">{ponente.nombre}</span>
+                            {ponente.cargo && <span className="text-xs text-blue-700">{ponente.cargo}</span>}
+                            {ponente.numero && <span className="text-xs text-blue-600">Número: {ponente.numero}</span>}
+                            {ponente.descripcion && (
+                              <span className="text-xs text-muted-foreground line-clamp-2">{ponente.descripcion}</span>
+                            )}
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
           {selectedPonente && (
             <div className="p-3 bg-white rounded-lg border border-blue-200 relative">
@@ -228,12 +271,16 @@ export function SurveyAssignmentSelector({
               >
                 <X className="h-4 w-4" />
               </Button>
-              <p className="text-sm font-semibold text-blue-900 pr-8">{selectedPonente.nombre}</p>
-              {selectedPonente.cargo && <p className="text-xs text-blue-700">{selectedPonente.cargo}</p>}
-              {selectedPonente.numero && <p className="text-xs text-blue-600">Número: {selectedPonente.numero}</p>}
-              {selectedPonente.descripcion && (
-                <p className="text-xs text-gray-600 mt-2">{selectedPonente.descripcion}</p>
-              )}
+              <div className="pr-8">
+                <p className="text-sm font-semibold text-blue-900">{selectedPonente.nombre}</p>
+                {selectedPonente.cargo && <p className="text-xs text-blue-700 mt-1">{selectedPonente.cargo}</p>}
+                {selectedPonente.numero && (
+                  <p className="text-xs text-blue-600 mt-1">Número: {selectedPonente.numero}</p>
+                )}
+                {selectedPonente.descripcion && (
+                  <p className="text-xs text-gray-600 mt-2">{selectedPonente.descripcion}</p>
+                )}
+              </div>
             </div>
           )}
         </CardContent>

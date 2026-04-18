@@ -38,23 +38,48 @@ const SCALE_VALUES: Record<string, number> = {
 
 const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6"]
 
+type QuestionStat = {
+  question: string
+  frequencies: Array<{ name: string; value: number; percentage: string }>
+  mode: string
+  average: number
+  stdDev: number
+  consensus: string
+  satisfactionTrend: string
+  total: number
+  validResponses: number
+}
+
 export function AdvancedStatisticsView() {
   const [surveys, setSurveys] = useState<any[]>([])
   const [ponentes, setPonentes] = useState<any[]>([])
-  const [selectedSurveyId, setSelectedSurveyId] = useState<string>("")
+  const [selectedSurveyId, setSelectedSurveyId] = useState<string>("all")
   const [selectedPonenteId, setSelectedPonenteId] = useState<string>("all")
   const [responses, setResponses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  const filteredSurveys = useMemo(() => {
+    if (selectedPonenteId === "all") return surveys
+    return surveys.filter((survey) => survey.ponenteId === selectedPonenteId)
+  }, [surveys, selectedPonenteId])
 
   useEffect(() => {
     loadData()
   }, [])
 
   useEffect(() => {
-    if (selectedSurveyId) {
+    if (selectedSurveyId && selectedSurveyId !== "all") {
       loadResponses(selectedSurveyId)
     }
   }, [selectedSurveyId])
+
+  useEffect(() => {
+    if (selectedSurveyId === "all" && filteredSurveys.length > 0) {
+      loadAllResponses(filteredSurveys.map((s) => s.id))
+    } else if (selectedSurveyId === "all" && filteredSurveys.length === 0) {
+      setResponses([])
+    }
+  }, [selectedSurveyId, filteredSurveys])
 
   const loadData = async () => {
     setLoading(true)
@@ -62,9 +87,6 @@ export function AdvancedStatisticsView() {
       const [surveysData, ponentesData] = await Promise.all([getAllSurveys(), getPonentes()])
       setSurveys(surveysData)
       setPonentes(ponentesData)
-      if (surveysData.length > 0) {
-        setSelectedSurveyId(surveysData[0].id)
-      }
     } catch (error) {
       console.error("Error cargando datos:", error)
     } finally {
@@ -87,14 +109,31 @@ export function AdvancedStatisticsView() {
     }
   }
 
-  const selectedSurvey = surveys.find((s) => s.id === selectedSurveyId)
-
-  const filteredSurveys = useMemo(() => {
-    if (selectedPonenteId === "all") {
-      return surveys
+  const loadAllResponses = async (surveyIds: string[]) => {
+    if (surveyIds.length === 0) {
+      setResponses([])
+      return
     }
-    return surveys.filter((survey) => survey.ponenteId === selectedPonenteId)
-  }, [surveys, selectedPonenteId])
+    setLoading(true)
+    try {
+      const arrays = await Promise.all(
+        surveyIds.map(async (id) => {
+          const data = await getSurveyResponses(id)
+          return data?.respuestas || []
+        }),
+      )
+      const all = arrays.flat()
+      setResponses(all)
+      console.log("[v0] Respuestas agregadas:", all.length)
+    } catch (error) {
+      console.error("Error cargando respuestas agregadas:", error)
+      setResponses([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const selectedSurvey = selectedSurveyId === "all" ? null : surveys.find((s) => s.id === selectedSurveyId)
 
   useEffect(() => {
     if (selectedPonenteId !== "all" && filteredSurveys.length > 0) {
@@ -106,19 +145,15 @@ export function AdvancedStatisticsView() {
   }, [selectedPonenteId, filteredSurveys, selectedSurveyId])
 
   const statistics = useMemo(() => {
-    if (!selectedSurvey || !selectedSurvey.preguntas || !Array.isArray(responses) || responses.length === 0) {
-      console.log("[v0] No hay datos para calcular estadísticas:", {
-        selectedSurvey: !!selectedSurvey,
-        preguntas: selectedSurvey?.preguntas?.length,
-        responses: responses.length,
-      })
+    const templateSurvey = selectedSurveyId === "all" ? filteredSurveys[0] : selectedSurvey
+    if (!templateSurvey || !templateSurvey.preguntas || !Array.isArray(responses) || responses.length === 0) {
       return null
     }
 
-    console.log("[v0] Calculando estadísticas con", responses.length, "respuestas")
+    console.log("[v0] Calculando estadísticas con", responses.length, "respuestas reales")
 
-    const questions = selectedSurvey.preguntas || []
-    const questionStats = questions.map((question: any, index: number) => {
+    const questions = templateSurvey.preguntas || []
+    const questionStats: QuestionStat[] = questions.map((question: any, index: number) => {
       const frequencies: Record<string, number> = {}
       let total = 0
       let sum = 0
@@ -239,7 +274,7 @@ export function AdvancedStatisticsView() {
       comparisonData,
       trendData,
     }
-  }, [selectedSurvey, responses])
+  }, [selectedSurvey, selectedSurveyId, filteredSurveys, responses])
 
   const getQualitativeRating = (score: number) => {
     if (score >= 4.5) return { text: "Excelente", color: "text-green-600", bg: "bg-green-50" }
@@ -346,6 +381,9 @@ export function AdvancedStatisticsView() {
                   <SelectValue placeholder="Selecciona una encuesta" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">
+                    Todas las encuestas ({filteredSurveys.reduce((acc, s) => acc + (s.respuestas || 0), 0)} respondidas)
+                  </SelectItem>
                   {filteredSurveys.map((survey) => (
                     <SelectItem key={survey.id} value={survey.id}>
                       {survey.titulo} ({survey.respuestas || 0} respuestas)

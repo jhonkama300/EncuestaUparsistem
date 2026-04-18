@@ -1,9 +1,9 @@
 "use client"
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { LogOut, ClipboardList, CheckCircle2, GraduationCap, BookOpen } from "lucide-react"
+import { ClipboardList, CheckCircle2, GraduationCap, BookOpen } from "lucide-react"
 import type { UserData } from "@/lib/auth"
+import { AppSidebar } from "./app-sidebar"
 import { getAssignedSurveys, submitSurveyResponse } from "@/lib/surveys"
 import { SurveyForm } from "./survey-form"
 import { collection, query, where, onSnapshot } from "firebase/firestore"
@@ -108,14 +108,14 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
   }
 
   const renderSurveyCard = (survey: any) => (
-    <Card key={survey.id} className="border-emerald-200 transition-shadow hover:shadow-lg">
+    <Card key={survey.id} className="border-border transition-shadow hover:shadow-lg">
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <CardTitle className="text-emerald-800">{survey.titulo}</CardTitle>
+            <CardTitle className="text-foreground">{survey.titulo}</CardTitle>
             <CardDescription className="mt-2">{survey.descripcion}</CardDescription>
           </div>
-          {survey.completada && <CheckCircle2 className="h-6 w-6 text-emerald-600 flex-shrink-0" />}
+          {survey.completada && <CheckCircle2 className="h-6 w-6 text-primary flex-shrink-0" />}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -177,7 +177,7 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
         <Button
           onClick={() => setSelectedSurvey(survey)}
           disabled={survey.completada}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-6 text-base"
+          className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-6 text-base"
         >
           {survey.completada ? "Completada" : "Responder"}
         </Button>
@@ -186,27 +186,12 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
   )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
-      <header className="border-b border-emerald-200 bg-gradient-to-r from-emerald-600 to-green-600 shadow-lg">
-        <div className="container mx-auto flex items-center justify-between px-4 py-4">
-          <div className="text-white">
-            <h1 className="text-2xl font-bold">Encuestas Estudiantiles</h1>
-            <p className="text-sm text-emerald-100">Bienvenido, {user.nombre}</p>
-          </div>
-          <Button
-            variant="outline"
-            onClick={handleLogoutClick}
-            className="gap-2 border-white bg-white/10 text-white hover:bg-white/20"
-          >
-            <LogOut className="h-4 w-4" />
-            Cerrar Sesión
-          </Button>
-        </div>
-      </header>
-
-      <main className="container mx-auto max-w-6xl p-4 py-8">
+    <div className="min-h-screen bg-background flex">
+      <AppSidebar user={user} onLogout={handleLogoutClick} activeTab="mi-encuesta" onTabChange={() => {}} />
+      <main className="flex-1 lg:pl-20 pb-16 lg:pb-0 min-h-screen overflow-auto">
+      <div className="container mx-auto max-w-6xl p-4 py-8">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-emerald-800">Tus Encuestas</h2>
+          <h2 className="text-2xl font-bold text-foreground">Tus Encuestas</h2>
           <p className="text-gray-600">Completa las encuestas asignadas a tu grupo</p>
         </div>
 
@@ -217,9 +202,9 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
             </CardContent>
           </Card>
         ) : surveys.length === 0 ? (
-          <Card className="border-emerald-200">
+          <Card className="border-border">
             <CardContent className="py-12 text-center">
-              <ClipboardList className="mx-auto mb-4 h-12 w-12 text-emerald-400" />
+              <ClipboardList className="mx-auto mb-4 h-12 w-12 text-primary/60" />
               <h3 className="mb-2 text-lg font-semibold text-gray-800">No hay encuestas disponibles</h3>
               <p className="text-gray-600">No tienes encuestas asignadas en este momento</p>
             </CardContent>
@@ -239,9 +224,9 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
 
             <TabsContent value="seminarios" className="space-y-4">
               {seminarios.length === 0 ? (
-                <Card className="border-emerald-200">
+                <Card className="border-border">
                   <CardContent className="py-12 text-center">
-                    <BookOpen className="mx-auto mb-4 h-12 w-12 text-emerald-400" />
+                    <BookOpen className="mx-auto mb-4 h-12 w-12 text-primary/60" />
                     <h3 className="mb-2 text-lg font-semibold text-gray-800">No hay seminarios disponibles</h3>
                     <p className="text-gray-600">No tienes seminarios asignados en este momento</p>
                   </CardContent>
@@ -253,9 +238,9 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
 
             <TabsContent value="diplomados" className="space-y-4">
               {diplomados.length === 0 ? (
-                <Card className="border-emerald-200">
+                <Card className="border-border">
                   <CardContent className="py-12 text-center">
-                    <GraduationCap className="mx-auto mb-4 h-12 w-12 text-emerald-400" />
+                    <GraduationCap className="mx-auto mb-4 h-12 w-12 text-primary/60" />
                     <h3 className="mb-2 text-lg font-semibold text-gray-800">No hay diplomados disponibles</h3>
                     <p className="text-gray-600">No tienes diplomados asignados en este momento</p>
                   </CardContent>
@@ -266,6 +251,7 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
             </TabsContent>
           </Tabs>
         )}
+      </div>
       </main>
     </div>
   )

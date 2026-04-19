@@ -40,7 +40,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
-import { getPonentes } from "@/lib/ponentes"
 
 export function SurveyManager() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -59,11 +58,12 @@ export function SurveyManager() {
   const [filterPonente, setFilterPonente] = useState<string>("all")
   const [filterPrograma, setFilterPrograma] = useState<string>("all")
   const [filterGrupo, setFilterGrupo] = useState<string>("all")
-  const [showFilters, setShowFilters] = useState(false)
+  const [filterPeriodo, setFilterPeriodo] = useState<string>("all")
 
   const [ponentes, setPonentes] = useState<any[]>([])
   const [programas, setProgramas] = useState<string[]>([])
   const [grupos, setGrupos] = useState<string[]>([])
+  const [periodos, setPeriodos] = useState<string[]>([])
 
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(5)
@@ -78,47 +78,44 @@ export function SurveyManager() {
     const unsubscribe = subscribeToAllSurveys((surveysData) => {
       setSurveys(surveysData)
     })
-
-    return () => {
-      unsubscribe()
-    }
+    return () => { unsubscribe() }
   }, [])
 
   useEffect(() => {
+    if (surveys.length === 0) return
+    const total = surveys.filter((s) => s.activa).length
+    const respuestas = surveys.reduce((sum, s) => sum + (s.respuestas || 0), 0)
+    setStats((prev) => ({ ...prev, total, respuestas, tasa: prev.estudiantesAsignados > 0 ? Math.round((respuestas / prev.estudiantesAsignados) * 100) : 0 }))
     loadFilterOptionsFromSurveys()
   }, [surveys])
 
   useEffect(() => {
     applyFilters()
-  }, [surveys, searchTerm, filterTipo, filterPonente, filterPrograma, filterGrupo])
+  }, [surveys, searchTerm, filterTipo, filterPonente, filterPrograma, filterGrupo, filterPeriodo])
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, filterTipo, filterPonente, filterPrograma, filterGrupo])
+  }, [searchTerm, filterTipo, filterPonente, filterPrograma, filterGrupo, filterPeriodo])
 
-  const loadFilterOptionsFromSurveys = async () => {
-    try {
-      const uniquePonenteIds = [...new Set(surveys.map((s) => s.ponenteId).filter(Boolean))]
-      const ponentesData = await getPonentes()
-      const ponentesFiltrados = ponentesData.filter((p) => uniquePonenteIds.includes(p.id))
-      setPonentes(ponentesFiltrados)
+  const loadFilterOptionsFromSurveys = () => {
+    const seenPonentes = new Map<string, string>()
+    surveys.forEach((s) => {
+      if (s.ponenteId && s.ponenteNombre) seenPonentes.set(s.ponenteId, s.ponenteNombre)
+    })
+    setPonentes(Array.from(seenPonentes.entries()).map(([id, nombre]) => ({ id, nombre })))
 
-      const uniqueProgramas = [...new Set(surveys.map((s) => s.programa).filter(Boolean))]
-      setProgramas(uniqueProgramas.sort())
+    const uniqueProgramas = [...new Set(surveys.map((s) => s.programa).filter(Boolean))]
+    setProgramas(uniqueProgramas.sort())
 
-      const allGrupos = surveys.flatMap((s) => {
-        if (Array.isArray(s.grupos)) {
-          return s.grupos
-        } else if (s.grupo) {
-          return [s.grupo]
-        }
-        return []
-      })
-      const uniqueGrupos = [...new Set(allGrupos)].filter(Boolean)
-      setGrupos(uniqueGrupos.sort())
-    } catch (error) {
-      console.error("Error cargando opciones de filtros:", error)
-    }
+    const allGrupos = surveys.flatMap((s) => {
+      if (Array.isArray(s.grupos)) return s.grupos
+      if (s.grupo) return [s.grupo]
+      return []
+    })
+    setGrupos([...new Set(allGrupos)].filter(Boolean).sort())
+
+    const uniquePeriodos = [...new Set(surveys.map((s) => s.periodo).filter(Boolean))]
+    setPeriodos(uniquePeriodos.sort())
   }
 
   const loadStats = async () => {
@@ -160,6 +157,10 @@ export function SurveyManager() {
         }
         return false
       })
+    }
+
+    if (filterPeriodo !== "all") {
+      filtered = filtered.filter((s) => s.periodo === filterPeriodo)
     }
 
     setFilteredSurveys(filtered)
@@ -388,67 +389,57 @@ export function SurveyManager() {
         </Button>
       </div>
 
-      <div className="mb-8 grid gap-6 md:grid-cols-3">
+      <div className="mb-6 grid gap-4 md:grid-cols-3">
         <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-white">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-emerald-800">Encuestas Activas</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
-              <FileText className="h-5 w-5 text-emerald-600" />
+          <CardContent className="flex items-center gap-3 py-4 px-5">
+            <div className="h-9 w-9 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+              <FileText className="h-4 w-4 text-emerald-600" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-emerald-700">{stats.total}</div>
-            <p className="text-xs text-gray-600 mt-1">Encuestas en curso</p>
+            <div>
+              <p className="text-xs text-gray-500 font-medium">Encuestas Activas</p>
+              <p className="text-2xl font-bold text-emerald-700 leading-tight">{stats.total}</p>
+              <p className="text-xs text-gray-400">En curso</p>
+            </div>
           </CardContent>
         </Card>
 
         <Card className="border-emerald-200 bg-gradient-to-br from-green-50 to-white">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-emerald-800">Respuestas Totales</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-              <Users className="h-5 w-5 text-green-600" />
+          <CardContent className="flex items-center gap-3 py-4 px-5">
+            <div className="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+              <Users className="h-4 w-4 text-green-600" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-700">
-              {stats.respuestas} / {stats.estudiantesAsignados}
+            <div>
+              <p className="text-xs text-gray-500 font-medium">Respuestas Totales</p>
+              <p className="text-2xl font-bold text-green-700 leading-tight">
+                {stats.respuestas} <span className="text-base font-medium text-gray-400">/ {stats.estudiantesAsignados}</span>
+              </p>
+              <p className="text-xs text-gray-400">Respondidas / Esperadas</p>
             </div>
-            <p className="text-xs text-gray-600 mt-1">Respuestas / Asignados</p>
           </CardContent>
         </Card>
 
         <Card className="border-emerald-200 bg-gradient-to-br from-teal-50 to-white">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-emerald-800">Tasa de Respuesta</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center">
-              <TrendingUp className="h-5 w-5 text-teal-600" />
+          <CardContent className="flex items-center gap-3 py-4 px-5">
+            <div className="h-9 w-9 rounded-full bg-teal-100 flex items-center justify-center shrink-0">
+              <TrendingUp className="h-4 w-4 text-teal-600" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-teal-700">{stats.tasa}%</div>
-            <p className="text-xs text-gray-600 mt-1">De estudiantes asignados</p>
+            <div>
+              <p className="text-xs text-gray-500 font-medium">Tasa de Respuesta</p>
+              <p className="text-2xl font-bold text-teal-700 leading-tight">{stats.tasa}%</p>
+              <p className="text-xs text-gray-400">De respuestas esperadas</p>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-800">Encuestas Recientes</h3>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-            className="gap-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50"
-          >
-            <Filter className="h-4 w-4" />
-            {showFilters ? "Ocultar Filtros" : "Mostrar Filtros"}
-          </Button>
         </div>
 
-        {showFilters && (
           <Card className="mb-4 border-emerald-200 bg-emerald-50/50">
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <CardContent className="py-4 px-5">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-gray-700">Buscar por nombre</Label>
                   <Input
@@ -524,13 +515,31 @@ export function SurveyManager() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">Periodo</Label>
+                  <Select value={filterPeriodo} onValueChange={setFilterPeriodo}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los periodos</SelectItem>
+                      {periodos.map((periodo) => (
+                        <SelectItem key={periodo} value={periodo}>
+                          {periodo}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {(searchTerm ||
                 filterTipo !== "all" ||
                 filterPonente !== "all" ||
                 filterPrograma !== "all" ||
-                filterGrupo !== "all") && (
+                filterGrupo !== "all" ||
+                filterPeriodo !== "all") && (
                 <div className="mt-4 flex items-center justify-between pt-4 border-t border-emerald-200">
                   <p className="text-sm text-gray-600">
                     Mostrando {filteredSurveys.length} de {surveys.length} encuestas
@@ -544,6 +553,7 @@ export function SurveyManager() {
                       setFilterPonente("all")
                       setFilterPrograma("all")
                       setFilterGrupo("all")
+                      setFilterPeriodo("all")
                     }}
                     className="text-emerald-700 hover:text-emerald-800 hover:bg-emerald-100"
                   >
@@ -553,7 +563,6 @@ export function SurveyManager() {
               )}
             </CardContent>
           </Card>
-        )}
 
         <div className="space-y-4">
           {filteredSurveys.length === 0 ? (

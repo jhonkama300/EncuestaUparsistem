@@ -408,9 +408,9 @@ export async function getSurveyStats() {
     const surveysSnapshot = await getDocs(qSurveys)
 
     const respuestasRef = collection(db, "respuestas")
-    const respuestasSnapshot2 = await getDocs(respuestasRef)
 
     let totalEstudiantesAsignados = 0
+    let totalRespuestas = 0
 
     for (const surveyDoc of surveysSnapshot.docs) {
       const surveyData = surveyDoc.data()
@@ -442,10 +442,13 @@ export async function getSurveyStats() {
           }
         })
       }
+
+      const qResp = query(respuestasRef, where("encuestaId", "==", surveyDoc.id))
+      const respSnap = await getDocs(qResp)
+      totalRespuestas += respSnap.size
     }
 
     const totalSurveys = surveysSnapshot.size
-    const totalRespuestas = respuestasSnapshot2.size
 
     const tasa = totalEstudiantesAsignados > 0 ? Math.round((totalRespuestas / totalEstudiantesAsignados) * 100) : 0
 

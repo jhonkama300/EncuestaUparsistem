@@ -116,9 +116,9 @@ export function SurveyStatisticsDialog({ open, onOpenChange, surveyId, surveyTit
       }
     })
 
-    const validAverages = questionStats.filter((stat) => stat.validResponses > 0)
+    const validAverages = questionStats.filter((stat: any) => stat.validResponses > 0)
     const overallAverage =
-      validAverages.length > 0 ? validAverages.reduce((acc, stat) => acc + stat.average, 0) / validAverages.length : 0
+      validAverages.length > 0 ? validAverages.reduce((acc: any, stat: any) => acc + stat.average, 0) / validAverages.length : 0
 
     const lastQuestion = questions[questions.length - 1]
     let expectationsFulfilled = 0
@@ -135,9 +135,9 @@ export function SurveyStatisticsDialog({ open, onOpenChange, surveyId, surveyTit
       responses.length > 0 ? ((expectationsFulfilled / responses.length) * 100).toFixed(1) : "0"
 
     const radarData = questionStats
-      .filter((stat) => stat.validResponses > 0)
+      .filter((stat: any) => stat.validResponses > 0)
       .slice(0, 6)
-      .map((stat, index) => ({
+      .map((stat: any, _index: number) => ({
         subject: `P${questionStats.indexOf(stat) + 1}`,
         value: Number(stat.average.toFixed(2)),
         fullMark: 5,
@@ -322,7 +322,7 @@ export function SurveyStatisticsDialog({ open, onOpenChange, surveyId, surveyTit
                             cx="50%"
                             cy="50%"
                             labelLine={false}
-                            label={({ name, percentage }) => `${name}: ${percentage}%`}
+                            label={({ name, percent }) => `${name}: ${((percent ?? 0) * 100).toFixed(1)}%`}
                             outerRadius={80}
                             fill="#8884d8"
                             dataKey="value"

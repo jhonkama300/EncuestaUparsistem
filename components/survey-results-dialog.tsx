@@ -32,7 +32,7 @@ export function SurveyResultsDialog({ open, onOpenChange, surveyId, surveyTitle 
       const data = await getSurveyResponses(surveyId)
       console.log("[v0] Respuestas cargadas en el componente:", data)
       setResponses(data.respuestas || [])
-      setSurveyQuestions(data.encuesta?.preguntas || [])
+      setSurveyQuestions((data.encuesta as any)?.preguntas || [])
     } catch (error) {
       console.error("Error cargando respuestas:", error)
     } finally {

@@ -35,11 +35,18 @@ export function SurveyAssignmentSelector({
   onGruposChange,
   onEstudiantesIndividualesChange,
 }: SurveyAssignmentSelectorProps) {
-  const [uniqueValues, setUniqueValues] = useState({
+  const [uniqueValues, setUniqueValues] = useState<{
+    programas: string[];
+    grupos: string[];
+    periodos: string[];
+    niveles: string[];
+    jornadas: string[];
+  }>({
     programas: [],
     grupos: [],
     periodos: [],
     niveles: [],
+    jornadas: [],
   })
   const [ponentes, setPonentes] = useState<any[]>([])
   const [openPonenteSearch, setOpenPonenteSearch] = useState(false)

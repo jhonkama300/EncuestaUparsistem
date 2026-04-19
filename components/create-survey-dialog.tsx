@@ -56,12 +56,13 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
     niveles: string[];
     periodos: string[];
     grupos: string[];
-    jornadas?: string[];
+    jornadas: string[];
   }>({
     programas: [],
     niveles: [],
     periodos: [],
     grupos: [],
+    jornadas: [],
   })
 
   const [saving, setSaving] = useState(false)

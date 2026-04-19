@@ -465,7 +465,7 @@ export function StudentUploader(): ReactElement {
                     >
                       <span className="text-sm text-purple-900">{jornada}</span>
                       <Badge variant="secondary" className="bg-purple-200 text-purple-900">
-                        {count}
+                        {count as number}
                       </Badge>
                     </div>
                   ))}
@@ -490,7 +490,7 @@ export function StudentUploader(): ReactElement {
                     >
                       <span className="text-sm text-green-900">{programa}</span>
                       <Badge variant="secondary" className="bg-green-200 text-green-900">
-                        {count}
+                        {count as number}
                       </Badge>
                     </div>
                   ))}
@@ -515,7 +515,7 @@ export function StudentUploader(): ReactElement {
                     >
                       <span className="text-sm text-orange-900">Nivel {nivel}</span>
                       <Badge variant="secondary" className="bg-orange-200 text-orange-900">
-                        {count}
+                        {count as number}
                       </Badge>
                     </div>
                   ))}

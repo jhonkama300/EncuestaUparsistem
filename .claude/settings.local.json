@@ -3,7 +3,13 @@
     "allow": [
       "Bash(node -e ' *)",
       "Bash(git restore *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(npx vercel *)",
+      "Bash(pnpm install *)",
+      "Bash(node -e \"const p=require\\('./node_modules/next/package.json'\\);console.log\\(p.version\\)\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }

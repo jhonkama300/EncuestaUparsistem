@@ -51,7 +51,13 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
   const [horaFin, setHoraFin] = useState("")
   const [auditorio, setAuditorio] = useState("") // Agregado estado para auditorio
 
-  const [uniqueValues, setUniqueValues] = useState({
+  const [uniqueValues, setUniqueValues] = useState<{
+    programas: string[];
+    niveles: string[];
+    periodos: string[];
+    grupos: string[];
+    jornadas?: string[];
+  }>({
     programas: [],
     niveles: [],
     periodos: [],
@@ -129,7 +135,7 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
 
   const handleSelectTemplate = async (templateId: string) => {
     const templates = await getTemplates()
-    const template = templates.find((t: any) => t.id === templateId)
+    const template = templates.find((t: any) => t.id === templateId) as any
 
     if (template) {
       setPreguntas(template.preguntas)

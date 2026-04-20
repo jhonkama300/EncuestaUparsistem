@@ -4,9 +4,9 @@ import React from "react"
 import type { ReactElement } from "react"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Users, Search, X, UserPlus } from "lucide-react"
+import { Users, Search, X, UserPlus, GraduationCap, BookOpen, Layers } from "lucide-react"
 import { subscribeToStudents } from "@/lib/students"
 import {
   Pagination,
@@ -97,26 +97,15 @@ export function StudentUploader(): ReactElement {
   }
 
   const countByJornada = students.reduce(
-    (acc, student) => {
-      if (student.jornada) acc[student.jornada] = (acc[student.jornada] || 0) + 1
-      return acc
-    },
+    (acc, s) => { if (s.jornada) acc[s.jornada] = (acc[s.jornada] || 0) + 1; return acc },
     {} as Record<string, number>,
   )
-
   const countByPrograma = students.reduce(
-    (acc, student) => {
-      if (student.programa) acc[student.programa] = (acc[student.programa] || 0) + 1
-      return acc
-    },
+    (acc, s) => { if (s.programa) acc[s.programa] = (acc[s.programa] || 0) + 1; return acc },
     {} as Record<string, number>,
   )
-
   const countByNivel = students.reduce(
-    (acc, student) => {
-      if (student.nivel) acc[student.nivel] = (acc[student.nivel] || 0) + 1
-      return acc
-    },
+    (acc, s) => { if (s.nivel) acc[s.nivel] = (acc[s.nivel] || 0) + 1; return acc },
     {} as Record<string, number>,
   )
 
@@ -135,337 +124,374 @@ export function StudentUploader(): ReactElement {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-emerald-800">Gestión de Estudiantes</h2>
-          <p className="text-gray-600">Visualiza y administra los estudiantes registrados</p>
+          <h2 className="text-2xl font-bold text-emerald-900">Gestión de Estudiantes</h2>
+          <p className="text-sm text-emerald-700 mt-1">
+            {students.length} estudiante{students.length !== 1 ? "s" : ""} registrados
+          </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setShowAddStudentDialog(true)} className="bg-green-600 hover:bg-green-700">
-            <UserPlus className="h-4 w-4 mr-2" />
-            Agregar un Estudiante
+          <Button onClick={() => setShowAddStudentDialog(true)} className="bg-green-600 hover:bg-green-700 gap-2">
+            <UserPlus className="h-4 w-4" />
+            Agregar
           </Button>
-          <Button onClick={() => setShowAssignDialog(true)} className="bg-emerald-600 hover:bg-emerald-700">
-            <UserPlus className="h-4 w-4 mr-2" />
+          <Button onClick={() => setShowAssignDialog(true)} className="bg-emerald-600 hover:bg-emerald-700 gap-2">
+            <Users className="h-4 w-4" />
             Asignar a Grupo
           </Button>
         </div>
       </div>
 
-      <Card className="border-emerald-200 bg-emerald-50/30">
-        <CardHeader>
-          <CardTitle className="text-emerald-800 flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Gestión de Estudiantes
-          </CardTitle>
-          <CardDescription>Visualiza, busca y filtra estudiantes registrados</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Estadísticas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card
-              className="border-blue-200 bg-blue-50 cursor-pointer hover:shadow-md transition-shadow"
-              onClick={clearAllFilters}
-            >
-              <CardHeader className="pb-3">
-                <CardTitle className="text-blue-800 text-sm font-medium">Total de Estudiantes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-blue-900">{students.length}</p>
-              </CardContent>
-            </Card>
+      {/* Stat cards compactos */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card
+          className="border-blue-200 bg-blue-50 cursor-pointer hover:shadow-md transition-shadow"
+          onClick={clearAllFilters}
+        >
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-blue-100">
+              <Users className="h-5 w-5 text-blue-700" />
+            </div>
+            <div>
+              <p className="text-xs text-blue-600 font-medium">Total</p>
+              <p className="text-2xl font-bold text-blue-900">{students.length}</p>
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card className="border-purple-200 bg-purple-50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-purple-800 text-sm font-medium">Por Jornada</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {Object.entries(countByJornada)
-                  .sort(([a], [b]) => a.localeCompare(b))
-                  .map(([jornada, count]) => (
-                    <div
-                      key={jornada}
-                      className="flex items-center justify-between cursor-pointer hover:bg-purple-100 p-2 rounded transition-colors"
-                      onClick={() => { clearAllFilters(); setFilterJornada(jornada) }}
-                    >
-                      <span className="text-sm text-purple-900">{jornada}</span>
-                      <Badge variant="secondary" className="bg-purple-200 text-purple-900">
-                        {count as number}
-                      </Badge>
-                    </div>
-                  ))}
-              </CardContent>
-            </Card>
+        <Card className="border-purple-200 bg-purple-50">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-purple-100">
+              <BookOpen className="h-5 w-5 text-purple-700" />
+            </div>
+            <div>
+              <p className="text-xs text-purple-600 font-medium">Jornadas</p>
+              <p className="text-2xl font-bold text-purple-900">{Object.keys(countByJornada).length}</p>
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card className="border-green-200 bg-green-50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-green-800 text-sm font-medium">Por Programa</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 max-h-48 overflow-y-auto">
-                {Object.entries(countByPrograma)
-                  .sort(([a], [b]) => a.localeCompare(b))
-                  .map(([programa, count]) => (
-                    <div
-                      key={programa}
-                      className="flex items-center justify-between cursor-pointer hover:bg-green-100 p-2 rounded transition-colors"
-                      onClick={() => { clearAllFilters(); setFilterPrograma(programa) }}
-                    >
-                      <span className="text-sm text-green-900">{programa}</span>
-                      <Badge variant="secondary" className="bg-green-200 text-green-900">
-                        {count as number}
-                      </Badge>
-                    </div>
-                  ))}
-              </CardContent>
-            </Card>
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-green-100">
+              <GraduationCap className="h-5 w-5 text-green-700" />
+            </div>
+            <div>
+              <p className="text-xs text-green-600 font-medium">Programas</p>
+              <p className="text-2xl font-bold text-green-900">{Object.keys(countByPrograma).length}</p>
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card className="border-orange-200 bg-orange-50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-orange-800 text-sm font-medium">Por Nivel</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {Object.entries(countByNivel)
-                  .sort(([a], [b]) => a.localeCompare(b))
-                  .map(([nivel, count]) => (
-                    <div
-                      key={nivel}
-                      className="flex items-center justify-between cursor-pointer hover:bg-orange-100 p-2 rounded transition-colors"
-                      onClick={() => { clearAllFilters(); setFilterNivel(nivel) }}
-                    >
-                      <span className="text-sm text-orange-900">Nivel {nivel}</span>
-                      <Badge variant="secondary" className="bg-orange-200 text-orange-900">
-                        {count as number}
-                      </Badge>
-                    </div>
-                  ))}
-              </CardContent>
-            </Card>
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-orange-100">
+              <Layers className="h-5 w-5 text-orange-700" />
+            </div>
+            <div>
+              <p className="text-xs text-orange-600 font-medium">Niveles</p>
+              <p className="text-2xl font-bold text-orange-900">{Object.keys(countByNivel).length}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Breakdown chips */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="border-purple-100">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm font-semibold text-purple-800">Por Jornada</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto">
+              {Object.entries(countByJornada)
+                .sort(([, a], [, b]) => (b as number) - (a as number))
+                .map(([jornada, count]) => (
+                  <button
+                    key={jornada}
+                    onClick={() => { clearAllFilters(); setFilterJornada(jornada) }}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                      filterJornada === jornada
+                        ? "bg-purple-600 text-white"
+                        : "bg-purple-100 text-purple-800 hover:bg-purple-200"
+                    }`}
+                  >
+                    <span className="max-w-[140px] truncate">{jornada}</span>
+                    <span className="font-bold">{count as number}</span>
+                  </button>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-green-100">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm font-semibold text-green-800">Por Programa</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto">
+              {Object.entries(countByPrograma)
+                .sort(([, a], [, b]) => (b as number) - (a as number))
+                .map(([programa, count]) => (
+                  <button
+                    key={programa}
+                    onClick={() => { clearAllFilters(); setFilterPrograma(programa) }}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                      filterPrograma === programa
+                        ? "bg-green-600 text-white"
+                        : "bg-green-100 text-green-800 hover:bg-green-200"
+                    }`}
+                  >
+                    <span className="max-w-[140px] truncate">{programa}</span>
+                    <span className="font-bold">{count as number}</span>
+                  </button>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-orange-100">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm font-semibold text-orange-800">Por Nivel</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto">
+              {Object.entries(countByNivel)
+                .sort(([, a], [, b]) => (b as number) - (a as number))
+                .map(([nivel, count]) => (
+                  <button
+                    key={nivel}
+                    onClick={() => { clearAllFilters(); setFilterNivel(nivel) }}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                      filterNivel === nivel
+                        ? "bg-orange-600 text-white"
+                        : "bg-orange-100 text-orange-800 hover:bg-orange-200"
+                    }`}
+                  >
+                    <span>Nivel {nivel}</span>
+                    <span className="font-bold">{count as number}</span>
+                  </button>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filtros y Tabla */}
+      <Card className="border-emerald-200">
+        <CardContent className="pt-5 space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            <Select value={filterJornada} onValueChange={setFilterJornada}>
+              <SelectTrigger className="text-xs">
+                <SelectValue placeholder="Jornada" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todas las jornadas</SelectItem>
+                {uniqueJornadas.map((j) => (
+                  <SelectItem key={j} value={j}>{j}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterPrograma} onValueChange={setFilterPrograma}>
+              <SelectTrigger className="text-xs">
+                <SelectValue placeholder="Programa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todos los programas</SelectItem>
+                {uniqueProgramasFilter.map((p) => (
+                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterNivel} onValueChange={setFilterNivel}>
+              <SelectTrigger className="text-xs">
+                <SelectValue placeholder="Nivel" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todos los niveles</SelectItem>
+                {uniqueNiveles.map((n) => (
+                  <SelectItem key={n} value={n}>{n}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterPeriodo} onValueChange={setFilterPeriodo}>
+              <SelectTrigger className="text-xs">
+                <SelectValue placeholder="Período" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todos los períodos</SelectItem>
+                {uniquePeriodos.map((p) => (
+                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterGrupo} onValueChange={setFilterGrupo}>
+              <SelectTrigger className="text-xs">
+                <SelectValue placeholder="Grupo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todos los grupos</SelectItem>
+                {uniqueGruposFilter.map((g) => (
+                  <SelectItem key={g} value={g}>{g}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Filtros y Tabla */}
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
-              <Select value={filterJornada} onValueChange={setFilterJornada}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Jornada" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Todas las jornadas</SelectItem>
-                  {uniqueJornadas.map((jornada) => (
-                    <SelectItem key={jornada} value={jornada}>{jornada}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={filterPrograma} onValueChange={setFilterPrograma}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Programa" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Todos los programas</SelectItem>
-                  {uniqueProgramasFilter.map((programa) => (
-                    <SelectItem key={programa} value={programa}>{programa}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={filterNivel} onValueChange={setFilterNivel}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Nivel" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Todos los niveles</SelectItem>
-                  {uniqueNiveles.map((nivel) => (
-                    <SelectItem key={nivel} value={nivel}>{nivel}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={filterPeriodo} onValueChange={setFilterPeriodo}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Período" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Todos los períodos</SelectItem>
-                  {uniquePeriodos.map((periodo) => (
-                    <SelectItem key={periodo} value={periodo}>{periodo}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={filterGrupo} onValueChange={setFilterGrupo}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Grupo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Todos los grupos</SelectItem>
-                  {uniqueGruposFilter.map((grupo) => (
-                    <SelectItem key={grupo} value={grupo}>{grupo}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Search className="h-4 w-4 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Buscar por documento, nombre, programa o grupo..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1"
-              />
-              {hasActiveFilters && (
-                <Button variant="outline" size="sm" onClick={clearAllFilters}>
-                  <X className="h-4 w-4 mr-1" />
-                  Limpiar
-                </Button>
-              )}
-            </div>
-
-            {filteredStudents.length === 0 ? (
-              <p className="text-center text-gray-600 py-8">No se encontraron estudiantes</p>
-            ) : (
-              <>
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between pt-4 pb-2">
-                    <p className="text-sm text-gray-600">
-                      Mostrando {startIndex + 1} - {Math.min(endIndex, filteredStudents.length)} de{" "}
-                      {filteredStudents.length} estudiantes
-                      <span className="ml-2 text-gray-500">
-                        (Página {currentPage} de {totalPages})
-                      </span>
-                    </p>
-                    <Pagination>
-                      <PaginationContent>
-                        <PaginationItem>
-                          <PaginationPrevious
-                            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                            className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                          />
-                        </PaginationItem>
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                          if (
-                            page === 1 ||
-                            page === totalPages ||
-                            (page >= currentPage - 1 && page <= currentPage + 1)
-                          ) {
-                            return (
-                              <PaginationItem key={page}>
-                                <PaginationLink
-                                  onClick={() => setCurrentPage(page)}
-                                  isActive={currentPage === page}
-                                  className="cursor-pointer"
-                                >
-                                  {page}
-                                </PaginationLink>
-                              </PaginationItem>
-                            )
-                          } else if (page === currentPage - 2 || page === currentPage + 2) {
-                            return (
-                              <PaginationItem key={page}>
-                                <PaginationEllipsis />
-                              </PaginationItem>
-                            )
-                          }
-                          return null
-                        })}
-                        <PaginationItem>
-                          <PaginationNext
-                            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                            className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                          />
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  </div>
-                )}
-
-                <div className="border rounded-lg overflow-hidden">
-                  <div className="max-h-96 overflow-y-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-emerald-50 sticky top-0">
-                        <tr>
-                          <th className="text-left p-2 font-semibold text-emerald-800">Documento</th>
-                          <th className="text-left p-2 font-semibold text-emerald-800">Nombre</th>
-                          <th className="text-left p-2 font-semibold text-emerald-800">Programa</th>
-                          <th className="text-left p-2 font-semibold text-emerald-800">Grupo</th>
-                          <th className="text-left p-2 font-semibold text-emerald-800">Nivel</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {paginatedStudents.map((student, index) => (
-                          <tr key={student.id || index} className="border-t hover:bg-gray-50">
-                            <td className="p-2">{student.documento}</td>
-                            <td className="p-2">
-                              {`${student.primerNombre} ${student.segundoNombre || ""} ${student.primerApellido} ${student.segundoApellido || ""}`.trim()}
-                            </td>
-                            <td className="p-2">{student.programa || "-"}</td>
-                            <td className="p-2">{student.grupo || "-"}</td>
-                            <td className="p-2">{student.nivel || "-"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between pt-4">
-                    <p className="text-sm text-gray-600">
-                      Mostrando {startIndex + 1} - {Math.min(endIndex, filteredStudents.length)} de{" "}
-                      {filteredStudents.length} estudiantes
-                      <span className="ml-2 text-gray-500">
-                        (Página {currentPage} de {totalPages})
-                      </span>
-                    </p>
-                    <Pagination>
-                      <PaginationContent>
-                        <PaginationItem>
-                          <PaginationPrevious
-                            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                            className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                          />
-                        </PaginationItem>
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                          if (
-                            page === 1 ||
-                            page === totalPages ||
-                            (page >= currentPage - 1 && page <= currentPage + 1)
-                          ) {
-                            return (
-                              <PaginationItem key={page}>
-                                <PaginationLink
-                                  onClick={() => setCurrentPage(page)}
-                                  isActive={currentPage === page}
-                                  className="cursor-pointer"
-                                >
-                                  {page}
-                                </PaginationLink>
-                              </PaginationItem>
-                            )
-                          } else if (page === currentPage - 2 || page === currentPage + 2) {
-                            return (
-                              <PaginationItem key={page}>
-                                <PaginationEllipsis />
-                              </PaginationItem>
-                            )
-                          }
-                          return null
-                        })}
-                        <PaginationItem>
-                          <PaginationNext
-                            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                            className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                          />
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  </div>
-                )}
-              </>
+          <div className="flex items-center gap-2">
+            <Search className="h-4 w-4 text-gray-400 shrink-0" />
+            <Input
+              type="text"
+              placeholder="Buscar por documento, nombre, programa o grupo..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1"
+            />
+            {hasActiveFilters && (
+              <Button variant="outline" size="sm" onClick={clearAllFilters} className="shrink-0">
+                <X className="h-4 w-4 mr-1" />
+                Limpiar
+              </Button>
             )}
           </div>
+
+          {hasActiveFilters && (
+            <p className="text-xs text-emerald-700 font-medium">
+              Mostrando {filteredStudents.length} de {students.length} estudiantes
+            </p>
+          )}
+
+          {filteredStudents.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">No se encontraron estudiantes</p>
+          ) : (
+            <>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-500">
+                    {startIndex + 1}–{Math.min(endIndex, filteredStudents.length)} de {filteredStudents.length}
+                    <span className="ml-1 text-gray-400">(pág. {currentPage}/{totalPages})</span>
+                  </p>
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                        if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
+                          return (
+                            <PaginationItem key={page}>
+                              <PaginationLink
+                                onClick={() => setCurrentPage(page)}
+                                isActive={currentPage === page}
+                                className="cursor-pointer"
+                              >
+                                {page}
+                              </PaginationLink>
+                            </PaginationItem>
+                          )
+                        } else if (page === currentPage - 2 || page === currentPage + 2) {
+                          return <PaginationItem key={page}><PaginationEllipsis /></PaginationItem>
+                        }
+                        return null
+                      })}
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
+
+              <div className="border rounded-lg overflow-hidden">
+                <div className="max-h-[480px] overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-emerald-50 sticky top-0 z-10">
+                      <tr>
+                        <th className="text-left p-3 font-semibold text-emerald-800 text-xs uppercase tracking-wide">Documento</th>
+                        <th className="text-left p-3 font-semibold text-emerald-800 text-xs uppercase tracking-wide">Nombre</th>
+                        <th className="text-left p-3 font-semibold text-emerald-800 text-xs uppercase tracking-wide">Programa</th>
+                        <th className="text-left p-3 font-semibold text-emerald-800 text-xs uppercase tracking-wide">Grupo</th>
+                        <th className="text-left p-3 font-semibold text-emerald-800 text-xs uppercase tracking-wide">Nivel</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {paginatedStudents.map((student, index) => (
+                        <tr key={student.id || index} className="hover:bg-gray-50 transition-colors">
+                          <td className="p-3 font-mono text-xs text-gray-600">{student.documento}</td>
+                          <td className="p-3 font-medium text-gray-900">
+                            {`${student.primerNombre} ${student.segundoNombre || ""} ${student.primerApellido} ${student.segundoApellido || ""}`.trim()}
+                          </td>
+                          <td className="p-3 text-gray-600 max-w-[200px] truncate">{student.programa || "-"}</td>
+                          <td className="p-3">
+                            {student.grupo ? (
+                              <Badge variant="outline" className="text-xs">{student.grupo}</Badge>
+                            ) : "-"}
+                          </td>
+                          <td className="p-3">
+                            {student.nivel ? (
+                              <Badge className="text-xs bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
+                                Nivel {student.nivel}
+                              </Badge>
+                            ) : "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-2">
+                  <p className="text-sm text-gray-500">
+                    {startIndex + 1}–{Math.min(endIndex, filteredStudents.length)} de {filteredStudents.length}
+                  </p>
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                        if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
+                          return (
+                            <PaginationItem key={page}>
+                              <PaginationLink onClick={() => setCurrentPage(page)} isActive={currentPage === page} className="cursor-pointer">
+                                {page}
+                              </PaginationLink>
+                            </PaginationItem>
+                          )
+                        } else if (page === currentPage - 2 || page === currentPage + 2) {
+                          return <PaginationItem key={page}><PaginationEllipsis /></PaginationItem>
+                        }
+                        return null
+                      })}
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
 

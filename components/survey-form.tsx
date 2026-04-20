@@ -120,16 +120,21 @@ export function SurveyForm({ survey, user, onSubmit, onBack, onLogout }: SurveyF
                     {index + 1}. {pregunta.texto}
                   </Label>
 
-                  {pregunta.tipo === "opcion_multiple" && (
+                  {(pregunta.tipo === "opcion_multiple" || pregunta.tipo === "checkbox") && (
                     <RadioGroup
                       value={responses[index] || ""}
                       onValueChange={(value) => updateResponse(index, value)}
                       disabled={isSubmitting}
                     >
-                      {["Excelente", "Bueno", "Regular", "Malo"].map((opcion) => (
+                      {(pregunta.opciones?.length
+                        ? pregunta.opciones
+                        : pregunta.tipo === "checkbox"
+                          ? ["Sí", "No"]
+                          : ["Excelente", "Bueno", "Aceptable", "Regular", "Malo"]
+                      ).map((opcion: string) => (
                         <div key={opcion} className="flex items-center space-x-2">
                           <RadioGroupItem value={opcion.toLowerCase()} id={`p${index}-${opcion}`} />
-                          <Label htmlFor={`p${index}-${opcion}`} className="font-normal text-sm sm:text-base">
+                          <Label htmlFor={`p${index}-${opcion}`} className="font-normal text-sm sm:text-base cursor-pointer">
                             {opcion}
                           </Label>
                         </div>

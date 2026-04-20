@@ -156,6 +156,9 @@ export function SurveyStatisticsDialog({ open, onOpenChange, surveyId, surveyTit
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-h-[95vh] w-[95vw] max-w-[95vw] sm:w-[90vw] sm:max-w-[90vw] lg:w-[85vw] lg:max-w-6xl xl:max-w-7xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Cargando estadísticas</DialogTitle>
+          </DialogHeader>
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="inline-block w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mb-4" />

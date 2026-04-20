@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Plus, X, Users, UserCheck, Filter, Check, ChevronsUpDown } from "lucide-react"
 import { getUniqueStudentValues, getStudentsByFilters } from "@/lib/students"
@@ -37,42 +36,85 @@ export function SurveyAssignmentSelector({
   onEstudiantesIndividualesChange,
   onCategorizacionChange,
 }: SurveyAssignmentSelectorProps) {
-  const [uniqueValues, setUniqueValues] = useState<{
-    programas: string[];
-    grupos: string[];
-    periodos: string[];
-    niveles: string[];
-    jornadas: string[];
-  }>({
-    programas: [],
-    grupos: [],
-    periodos: [],
-    niveles: [],
-    jornadas: [],
-  })
+  const [allProgramas, setAllProgramas] = useState<string[]>([])
   const [ponentes, setPonentes] = useState<any[]>([])
-  const [openPonenteSearch, setOpenPonenteSearch] = useState(false)
+
+  const [openPonente, setOpenPonente] = useState(false)
+  const [openPrograma, setOpenPrograma] = useState(false)
+  const [openNivel, setOpenNivel] = useState(false)
+  const [openPeriodo, setOpenPeriodo] = useState(false)
+  const [openGrupo, setOpenGrupo] = useState(false)
 
   const [filterPrograma, setFilterPrograma] = useState("")
   const [filterNivel, setFilterNivel] = useState("")
   const [filterPeriodo, setFilterPeriodo] = useState("")
   const [filterGrupo, setFilterGrupo] = useState("")
 
-  const [searchPrograma, setSearchPrograma] = useState("")
-  const [searchNivel, setSearchNivel] = useState("")
-  const [searchPeriodo, setSearchPeriodo] = useState("")
-  const [searchGrupo, setSearchGrupo] = useState("")
+  // Data-driven available options per step
+  const [availableNiveles, setAvailableNiveles] = useState<string[]>([])
+  const [availablePeriodos, setAvailablePeriodos] = useState<string[]>([])
+  const [availableGrupos, setAvailableGrupos] = useState<string[]>([])
 
   const [totalAsignados, setTotalAsignados] = useState(0)
-  const [filteredGroups, setFilteredGroups] = useState<string[]>([])
 
-  const canSelectNivel = !!filterPrograma
-  const canSelectPeriodo = !!filterPrograma && !!filterNivel
-  const canSelectGroup = !!filterPrograma && !!filterNivel && !!filterPeriodo
+  // Sequential dependency: only enable if previous step selected AND options exist in DB
+  const canSelectNivel = !!filterPrograma && availableNiveles.length > 0
+  const canSelectPeriodo = !!filterNivel && availablePeriodos.length > 0
+  const canSelectGroup = !!filterPeriodo && availableGrupos.length > 0
 
   useEffect(() => {
-    loadData()
+    loadInitialData()
   }, [])
+
+  // Load programas list once
+  const loadInitialData = async () => {
+    const values = await getUniqueStudentValues()
+    setAllProgramas(values.programas)
+    const ponentesData = await getPonentes()
+    setPonentes(ponentesData)
+  }
+
+  // When programa changes → fetch available niveles from DB
+  useEffect(() => {
+    if (!filterPrograma) {
+      setAvailableNiveles([])
+      setFilterNivel("")
+      setFilterPeriodo("")
+      setFilterGrupo("")
+      return
+    }
+    getStudentsByFilters({ programa: filterPrograma }).then((students) => {
+      const set = new Set(students.map((s: any) => s.nivel).filter(Boolean))
+      setAvailableNiveles(Array.from(set as Set<string>).sort())
+    })
+  }, [filterPrograma])
+
+  // When nivel changes → fetch available periodos from DB
+  useEffect(() => {
+    if (!filterNivel) {
+      setAvailablePeriodos([])
+      setFilterPeriodo("")
+      setFilterGrupo("")
+      return
+    }
+    getStudentsByFilters({ programa: filterPrograma, nivel: filterNivel }).then((students) => {
+      const set = new Set(students.map((s: any) => s.periodo).filter(Boolean))
+      setAvailablePeriodos(Array.from(set as Set<string>).sort())
+    })
+  }, [filterNivel])
+
+  // When periodo changes → fetch available grupos from DB
+  useEffect(() => {
+    if (!filterPeriodo) {
+      setAvailableGrupos([])
+      setFilterGrupo("")
+      return
+    }
+    getStudentsByFilters({ programa: filterPrograma, nivel: filterNivel, periodo: filterPeriodo }).then((students) => {
+      const set = new Set(students.map((s: any) => s.grupo).filter(Boolean))
+      setAvailableGrupos(Array.from(set as Set<string>).sort())
+    })
+  }, [filterPeriodo])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -81,79 +123,18 @@ export function SurveyAssignmentSelector({
     return () => clearTimeout(timer)
   }, [grupos])
 
-  useEffect(() => {
-    filterAvailableGroups()
-  }, [filterPrograma, filterNivel, filterPeriodo, uniqueValues])
-
-  useEffect(() => {
-    setFilterGrupo("")
-    setSearchGrupo("")
-  }, [filterPrograma, filterNivel, filterPeriodo])
-
-  useEffect(() => {
-    if (!filterPrograma) {
-      setFilterNivel("")
-      setSearchNivel("")
-      setFilterPeriodo("")
-      setSearchPeriodo("")
-      setFilterGrupo("")
-      setSearchGrupo("")
-    }
-  }, [filterPrograma])
-
-  useEffect(() => {
-    if (!filterNivel) {
-      setFilterPeriodo("")
-      setSearchPeriodo("")
-      setFilterGrupo("")
-      setSearchGrupo("")
-    }
-  }, [filterNivel])
-
-  useEffect(() => {
-    if (!filterPeriodo) {
-      setFilterGrupo("")
-      setSearchGrupo("")
-    }
-  }, [filterPeriodo])
-
-  const loadData = async () => {
-    const values = await getUniqueStudentValues()
-    setUniqueValues(values)
-    const ponentesData = await getPonentes()
-    setPonentes(ponentesData)
-  }
-
-  const filterAvailableGroups = async () => {
-    if (!filterPrograma && !filterNivel && !filterPeriodo) {
-      setFilteredGroups(uniqueValues.grupos)
-      return
-    }
-
-    const filters: any = {}
-    if (filterPrograma) filters.programa = filterPrograma
-    if (filterNivel) filters.nivel = filterNivel
-    if (filterPeriodo) filters.periodo = filterPeriodo
-
-    const students = await getStudentsByFilters(filters)
-    const gruposSet = new Set(students.map((s: any) => s.grupo).filter(Boolean))
-    setFilteredGroups(Array.from(gruposSet).sort())
-  }
-
   const calculateTotalAsignados = async () => {
     if (grupos.length === 0) {
       setTotalAsignados(0)
       return
     }
-
     const groupCounts = await Promise.all(
       grupos.map(async (grupo) => {
         const students = await getStudentsByFilters(grupo)
         return students.length
       }),
     )
-    const total = groupCounts.reduce((sum, count) => sum + count, 0)
-    setTotalAsignados(total)
+    setTotalAsignados(groupCounts.reduce((sum, count) => sum + count, 0))
   }
 
   const addGrupo = () => {
@@ -192,19 +173,9 @@ export function SurveyAssignmentSelector({
 
   const selectedPonente = ponentes.find((p) => p.id === ponenteId)
 
-  const filteredProgramas = uniqueValues.programas.filter((p: string) =>
-    p.toLowerCase().includes(searchPrograma.toLowerCase()),
-  )
-  const filteredNiveles = uniqueValues.niveles.filter((n: string) =>
-    n.toLowerCase().includes(searchNivel.toLowerCase()),
-  )
-  const filteredPeriodos = uniqueValues.periodos.filter((p: string) =>
-    p.toLowerCase().includes(searchPeriodo.toLowerCase()),
-  )
-  const filteredGruposSearch = filteredGroups.filter((g: string) => g.toLowerCase().includes(searchGrupo.toLowerCase()))
-
   return (
     <div className="space-y-6">
+      {/* Ponente */}
       <Card className="border-blue-200 bg-blue-50/50">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -215,13 +186,13 @@ export function SurveyAssignmentSelector({
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label className="text-sm">Ponente *</Label>
-            <Popover open={openPonenteSearch} onOpenChange={setOpenPonenteSearch}>
+            <Popover open={openPonente} onOpenChange={setOpenPonente} modal={false}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
-                  aria-expanded={openPonenteSearch}
-                  className="w-full justify-between h-auto min-h-[40px] py-2 bg-transparent"
+                  aria-expanded={openPonente}
+                  className="w-full justify-between h-auto min-h-10 py-2 bg-transparent"
                 >
                   {selectedPonente ? (
                     <div className="flex flex-col items-start gap-1 text-left">
@@ -236,10 +207,10 @@ export function SurveyAssignmentSelector({
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[400px] p-0" align="start">
+              <PopoverContent className="w-100 p-0" align="start">
                 <Command>
                   <CommandInput placeholder="Buscar ponente por nombre, cargo o número..." />
-                  <CommandList>
+                  <CommandList className="max-h-64 overflow-y-auto">
                     <CommandEmpty>No se encontraron ponentes.</CommandEmpty>
                     <CommandGroup>
                       {ponentes.map((ponente) => (
@@ -248,7 +219,7 @@ export function SurveyAssignmentSelector({
                           value={`${ponente.nombre} ${ponente.cargo || ""} ${ponente.numero || ""}`}
                           onSelect={() => {
                             onPonenteChange(ponente.id === ponenteId ? "" : ponente.id)
-                            setOpenPonenteSearch(false)
+                            setOpenPonente(false)
                           }}
                           className="flex items-start gap-2 py-3"
                         >
@@ -301,6 +272,7 @@ export function SurveyAssignmentSelector({
         </CardContent>
       </Card>
 
+      {/* Filtros */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -308,202 +280,235 @@ export function SurveyAssignmentSelector({
             Filtros de Asignación (Opcional)
           </CardTitle>
           <p className="text-sm text-gray-600 mt-2">
-            Los filtros se habilitan en orden: Programa → Nivel → Período → Grupo
+            Los filtros se habilitan en orden según los datos existentes: Programa → Nivel → Período → Grupo
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Programa Filter */}
+
+            {/* Programa */}
             <div className="space-y-2">
-              <Label className="text-sm">Programa *</Label>
-              <Input
-                type="text"
-                placeholder="Buscar programa..."
-                value={searchPrograma || filterPrograma}
-                onChange={(e) => {
-                  setSearchPrograma(e.target.value)
-                  const found = filteredProgramas.find((p: string) =>
-                    p.toLowerCase().includes(e.target.value.toLowerCase()),
-                  )
-                  if (found) setFilterPrograma(found)
-                }}
-                list="programas-list"
-              />
-              <datalist id="programas-list">
-                {filteredProgramas.map((p: string) => (
-                  <option key={p} value={p} />
-                ))}
-              </datalist>
+              <Label className="text-sm">Programa</Label>
+              <Popover open={openPrograma} onOpenChange={setOpenPrograma} modal={false}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                    <span className={filterPrograma ? "text-foreground" : "text-muted-foreground"}>
+                      {filterPrograma || "Seleccionar programa..."}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-70 p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar programa..." />
+                    <CommandList className="max-h-64 overflow-y-auto">
+                      <CommandEmpty>No encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        {allProgramas.map((p) => (
+                          <CommandItem
+                            key={p}
+                            value={p}
+                            onSelect={(val) => {
+                              setFilterPrograma(val === filterPrograma ? "" : val)
+                              setOpenPrograma(false)
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", filterPrograma === p ? "opacity-100" : "opacity-0")} />
+                            <span className="text-sm">{p}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               {filterPrograma && (
-                <Badge variant="secondary" className="mt-1">
+                <Badge variant="secondary" className="gap-1">
                   {filterPrograma}
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => {
-                      setFilterPrograma("")
-                      setSearchPrograma("")
-                    }}
-                    className="h-4 w-4 p-0 ml-2"
-                  >
+                  <button type="button" onClick={() => setFilterPrograma("")} className="hover:text-red-600">
                     <X className="h-3 w-3" />
-                  </Button>
+                  </button>
                 </Badge>
               )}
             </div>
 
-            {/* Nivel Filter */}
+            {/* Nivel */}
             <div className="space-y-2">
               <Label className="text-sm flex items-center gap-2">
-                Nivel *
-                {!canSelectNivel && <span className="text-xs text-amber-600 font-normal">(Requiere Programa)</span>}
-              </Label>
-              <Input
-                type="text"
-                placeholder={canSelectNivel ? "Buscar nivel..." : "Selecciona Programa primero"}
-                value={searchNivel || filterNivel}
-                onChange={(e) => {
-                  if (!canSelectNivel) return
-                  setSearchNivel(e.target.value)
-                  const found = filteredNiveles.find((n: string) =>
-                    n.toLowerCase().includes(e.target.value.toLowerCase()),
-                  )
-                  if (found) setFilterNivel(found)
-                }}
-                list="niveles-list"
-                disabled={!canSelectNivel}
-                className={!canSelectNivel ? "opacity-50 cursor-not-allowed" : ""}
-              />
-              <datalist id="niveles-list">
-                {filteredNiveles.map((n: string) => (
-                  <option key={n} value={n} />
-                ))}
-              </datalist>
-              {filterNivel && (
-                <Badge variant="secondary" className="mt-1">
-                  {filterNivel}
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => {
-                      setFilterNivel("")
-                      setSearchNivel("")
-                    }}
-                    className="h-4 w-4 p-0 ml-2"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </Badge>
-              )}
-            </div>
-
-            {/* Periodo Filter */}
-            <div className="space-y-2">
-              <Label className="text-sm flex items-center gap-2">
-                Período *
-                {!canSelectPeriodo && (
-                  <span className="text-xs text-amber-600 font-normal">(Requiere Programa y Nivel)</span>
+                Nivel
+                {filterPrograma && availableNiveles.length === 0 && (
+                  <span className="text-xs text-red-500 font-normal">(Sin datos)</span>
+                )}
+                {!filterPrograma && (
+                  <span className="text-xs text-amber-600 font-normal">(Requiere Programa)</span>
                 )}
               </Label>
-              <Input
-                type="text"
-                placeholder={canSelectPeriodo ? "Buscar período..." : "Selecciona Programa y Nivel primero"}
-                value={searchPeriodo || filterPeriodo}
-                onChange={(e) => {
-                  if (!canSelectPeriodo) return
-                  setSearchPeriodo(e.target.value)
-                  const found = filteredPeriodos.find((p: string) =>
-                    p.toLowerCase().includes(e.target.value.toLowerCase()),
-                  )
-                  if (found) setFilterPeriodo(found)
-                }}
-                list="periodos-list"
-                disabled={!canSelectPeriodo}
-                className={!canSelectPeriodo ? "opacity-50 cursor-not-allowed" : ""}
-              />
-              <datalist id="periodos-list">
-                {filteredPeriodos.map((p: string) => (
-                  <option key={p} value={p} />
-                ))}
-              </datalist>
-              {filterPeriodo && (
-                <Badge variant="secondary" className="mt-1">
-                  {filterPeriodo}
+              <Popover open={openNivel} onOpenChange={canSelectNivel ? setOpenNivel : undefined} modal={false}>
+                <PopoverTrigger asChild>
                   <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => {
-                      setFilterPeriodo("")
-                      setSearchPeriodo("")
-                    }}
-                    className="h-4 w-4 p-0 ml-2"
+                    variant="outline"
+                    role="combobox"
+                    disabled={!canSelectNivel}
+                    className="w-full justify-between font-normal"
                   >
-                    <X className="h-3 w-3" />
+                    <span className={filterNivel ? "text-foreground" : "text-muted-foreground"}>
+                      {filterNivel || "Seleccionar nivel..."}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-70 p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar nivel..." />
+                    <CommandList className="max-h-64 overflow-y-auto">
+                      <CommandEmpty>No encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        {availableNiveles.map((n) => (
+                          <CommandItem
+                            key={n}
+                            value={n}
+                            onSelect={(val) => {
+                              setFilterNivel(val === filterNivel ? "" : val)
+                              setOpenNivel(false)
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", filterNivel === n ? "opacity-100" : "opacity-0")} />
+                            <span className="text-sm">{n}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {filterNivel && (
+                <Badge variant="secondary" className="gap-1">
+                  {filterNivel}
+                  <button type="button" onClick={() => setFilterNivel("")} className="hover:text-red-600">
+                    <X className="h-3 w-3" />
+                  </button>
                 </Badge>
               )}
             </div>
 
-            {/* Grupo Filter */}
+            {/* Período */}
+            <div className="space-y-2">
+              <Label className="text-sm flex items-center gap-2">
+                Período
+                {filterNivel && availablePeriodos.length === 0 && (
+                  <span className="text-xs text-red-500 font-normal">(Sin datos)</span>
+                )}
+                {!filterNivel && (
+                  <span className="text-xs text-amber-600 font-normal">(Requiere Nivel)</span>
+                )}
+              </Label>
+              <Popover open={openPeriodo} onOpenChange={canSelectPeriodo ? setOpenPeriodo : undefined} modal={false}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    disabled={!canSelectPeriodo}
+                    className="w-full justify-between font-normal"
+                  >
+                    <span className={filterPeriodo ? "text-foreground" : "text-muted-foreground"}>
+                      {filterPeriodo || "Seleccionar período..."}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-70 p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar período..." />
+                    <CommandList className="max-h-64 overflow-y-auto">
+                      <CommandEmpty>No encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        {availablePeriodos.map((p) => (
+                          <CommandItem
+                            key={p}
+                            value={p}
+                            onSelect={(val) => {
+                              setFilterPeriodo(val === filterPeriodo ? "" : val)
+                              setOpenPeriodo(false)
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", filterPeriodo === p ? "opacity-100" : "opacity-0")} />
+                            <span className="text-sm">{p}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {filterPeriodo && (
+                <Badge variant="secondary" className="gap-1">
+                  {filterPeriodo}
+                  <button type="button" onClick={() => setFilterPeriodo("")} className="hover:text-red-600">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+            </div>
+
+            {/* Grupo */}
             <div className="space-y-2">
               <Label className="text-sm flex items-center gap-2">
                 Grupo
-                {!canSelectGroup && (
-                  <span className="text-xs text-amber-600 font-normal">(Requiere los 3 filtros anteriores)</span>
+                {filterPeriodo && availableGrupos.length === 0 && (
+                  <span className="text-xs text-red-500 font-normal">(Sin datos)</span>
+                )}
+                {!filterPeriodo && (
+                  <span className="text-xs text-amber-600 font-normal">(Requiere Período)</span>
                 )}
               </Label>
-              <Input
-                type="text"
-                placeholder={canSelectGroup ? "Buscar grupo..." : "Completa los 3 filtros anteriores"}
-                value={searchGrupo || filterGrupo}
-                onChange={(e) => {
-                  if (!canSelectGroup) return
-                  setSearchGrupo(e.target.value)
-                  const found = filteredGruposSearch.find((g: string) =>
-                    g.toLowerCase().includes(e.target.value.toLowerCase()),
-                  )
-                  if (found) setFilterGrupo(found)
-                }}
-                list="grupos-list"
-                disabled={!canSelectGroup}
-                className={!canSelectGroup ? "opacity-50 cursor-not-allowed" : ""}
-              />
-              <datalist id="grupos-list">
-                {filteredGruposSearch.map((g: string) => (
-                  <option key={g} value={g} />
-                ))}
-              </datalist>
-              {filterGrupo && (
-                <Badge variant="secondary" className="mt-1">
-                  {filterGrupo}
+              <Popover open={openGrupo} onOpenChange={canSelectGroup ? setOpenGrupo : undefined} modal={false}>
+                <PopoverTrigger asChild>
                   <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => {
-                      setFilterGrupo("")
-                      setSearchGrupo("")
-                    }}
-                    className="h-4 w-4 p-0 ml-2"
+                    variant="outline"
+                    role="combobox"
+                    disabled={!canSelectGroup}
+                    className="w-full justify-between font-normal"
                   >
-                    <X className="h-3 w-3" />
+                    <span className={filterGrupo ? "text-foreground" : "text-muted-foreground"}>
+                      {filterGrupo || "Seleccionar grupo..."}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-70 p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar grupo..." />
+                    <CommandList className="max-h-64 overflow-y-auto">
+                      <CommandEmpty>No encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        {availableGrupos.map((g) => (
+                          <CommandItem
+                            key={g}
+                            value={g}
+                            onSelect={(val) => {
+                              setFilterGrupo(val === filterGrupo ? "" : val)
+                              setOpenGrupo(false)
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", filterGrupo === g ? "opacity-100" : "opacity-0")} />
+                            <span className="text-sm">{g}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {filterGrupo && (
+                <Badge variant="secondary" className="gap-1">
+                  {filterGrupo}
+                  <button type="button" onClick={() => setFilterGrupo("")} className="hover:text-red-600">
+                    <X className="h-3 w-3" />
+                  </button>
                 </Badge>
               )}
             </div>
           </div>
-
-          {!canSelectGroup && (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm text-amber-800">
-                <strong>Nota:</strong> Los filtros se habilitan en orden secuencial. Primero selecciona Programa, luego
-                Nivel, después Período, y finalmente podrás elegir un Grupo específico.
-              </p>
-            </div>
-          )}
 
           <Button
             type="button"
@@ -518,7 +523,7 @@ export function SurveyAssignmentSelector({
           {grupos.length > 0 && (
             <div className="space-y-2">
               <Label className="text-sm font-semibold">Grupos asignados:</Label>
-              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              <div className="space-y-2 max-h-75 overflow-y-auto">
                 {grupos.map((grupo, index) => (
                   <Badge
                     key={index}
@@ -536,7 +541,7 @@ export function SurveyAssignmentSelector({
                       size="icon"
                       variant="ghost"
                       onClick={() => removeGrupo(index)}
-                      className="h-4 w-4 p-0 hover:bg-red-100 flex-shrink-0"
+                      className="h-4 w-4 p-0 hover:bg-red-100 shrink-0"
                     >
                       <X className="h-3 w-3" />
                     </Button>

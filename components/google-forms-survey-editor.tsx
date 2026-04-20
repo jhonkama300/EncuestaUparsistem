@@ -30,12 +30,17 @@ export function GoogleFormsSurveyEditor({
 }: GoogleFormsSurveyEditorProps) {
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null)
 
+  const DEFAULT_OPCIONES: Record<string, string[]> = {
+    opcion_multiple: ["Excelente", "Bueno", "Aceptable", "Regular", "Malo"],
+    checkbox: ["Sí", "No"],
+  }
+
   const addQuestion = (tipo: SurveyQuestion["tipo"]) => {
     const newQuestion: SurveyQuestion = {
       id: `q-${Date.now()}`,
       texto: "",
       tipo,
-      opciones: tipo === "opcion_multiple" || tipo === "checkbox" ? ["Opción 1"] : undefined,
+      opciones: DEFAULT_OPCIONES[tipo] ? [...DEFAULT_OPCIONES[tipo]] : undefined,
       requerida: false,
     }
     onPreguntasChange([...preguntas, newQuestion])
@@ -147,7 +152,15 @@ export function GoogleFormsSurveyEditor({
                     />
                     <Select
                       value={pregunta.tipo}
-                      onValueChange={(value: SurveyQuestion["tipo"]) => updateQuestion(pregunta.id, { tipo: value })}
+                      onValueChange={(value: SurveyQuestion["tipo"]) => {
+                        const updates: Partial<SurveyQuestion> = { tipo: value }
+                        if (value === "opcion_multiple" || value === "checkbox") {
+                          updates.opciones = [...(DEFAULT_OPCIONES[value] ?? ["Opción 1"])]
+                        } else {
+                          updates.opciones = undefined
+                        }
+                        updateQuestion(pregunta.id, updates)
+                      }}
                     >
                       <SelectTrigger className="w-[200px]">
                         <div className="flex items-center gap-2">

@@ -31,7 +31,7 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
       id: "q-1",
       texto: "",
       tipo: "opcion_multiple",
-      opciones: ["Opción 1"],
+      opciones: ["Excelente", "Bueno", "Aceptable", "Regular", "Malo"],
       requerida: false,
     },
   ])
@@ -84,7 +84,7 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
           id: "q-1",
           texto: "",
           tipo: "opcion_multiple",
-          opciones: ["Opción 1"],
+          opciones: ["Excelente", "Bueno", "Aceptable", "Regular", "Malo"],
           requerida: false,
         },
       ])

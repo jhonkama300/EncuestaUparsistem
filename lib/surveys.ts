@@ -403,61 +403,44 @@ export async function getSurveyResponses(surveyId: string) {
 
 export async function getSurveyStats() {
   try {
-    const surveysRef = collection(db, "encuestas")
-    const qSurveys = query(surveysRef, where("activa", "==", true))
-    const surveysSnapshot = await getDocs(qSurveys)
+    // 3 parallel fetches instead of N×M sequential queries
+    const [surveysSnapshot, estudiantesSnapshot, respuestasSnapshot] = await Promise.all([
+      getDocs(collection(db, "encuestas")),
+      getDocs(collection(db, "estudiantes")),
+      getDocs(collection(db, "respuestas")),
+    ])
 
-    const respuestasRef = collection(db, "respuestas")
+    const estudiantes = estudiantesSnapshot.docs.map((d) => ({ id: d.id, ...d.data() as any }))
+    const totalRespuestas = respuestasSnapshot.size
 
     let totalEstudiantesAsignados = 0
-    let totalRespuestas = 0
+    let totalActive = 0
 
     for (const surveyDoc of surveysSnapshot.docs) {
       const surveyData = surveyDoc.data()
+      if (surveyData.activa) totalActive++
       const asignacion = surveyData.asignacion || {}
+      const individuales: string[] = asignacion.estudiantesIndividuales || []
 
-      // Contar estudiantes individuales asignados
-      if (asignacion.estudiantesIndividuales && Array.isArray(asignacion.estudiantesIndividuales)) {
-        totalEstudiantesAsignados += asignacion.estudiantesIndividuales.length
+      totalEstudiantesAsignados += individuales.length
+
+      if (Array.isArray(asignacion.grupos) && asignacion.grupos.length > 0) {
+        for (const est of estudiantes) {
+          if (individuales.includes(est.documento)) continue
+          const matched = asignacion.grupos.some((g: any) =>
+            (!g.programa || g.programa === est.programa) &&
+            (!g.grupo    || g.grupo    === est.grupo)    &&
+            (!g.periodo  || g.periodo  === est.periodo)  &&
+            (!g.nivel    || g.nivel    === est.nivel)
+          )
+          if (matched) totalEstudiantesAsignados++
+        }
       }
-
-      // Contar estudiantes asignados por grupos
-      if (asignacion.grupos && Array.isArray(asignacion.grupos) && asignacion.grupos.length > 0) {
-        const estudiantesRef = collection(db, "estudiantes")
-        const estudiantesSnapshot = await getDocs(estudiantesRef)
-
-        estudiantesSnapshot.docs.forEach((estudianteDoc) => {
-          const estudiante = estudianteDoc.data()
-          const isAssigned = asignacion.grupos.some((grupo: any) => {
-            return (
-              (!grupo.programa || grupo.programa === estudiante.programa) &&
-              (!grupo.grupo || grupo.grupo === estudiante.grupo) &&
-              (!grupo.periodo || grupo.periodo === estudiante.periodo) &&
-              (!grupo.nivel || grupo.nivel === estudiante.nivel)
-            )
-          })
-
-          if (isAssigned && !asignacion.estudiantesIndividuales?.includes(estudiante.documento)) {
-            totalEstudiantesAsignados++
-          }
-        })
-      }
-
-      const qResp = query(respuestasRef, where("encuestaId", "==", surveyDoc.id))
-      const respSnap = await getDocs(qResp)
-      totalRespuestas += respSnap.size
     }
-
-    const totalSurveys = surveysSnapshot.size
 
     const tasa = totalEstudiantesAsignados > 0 ? Math.round((totalRespuestas / totalEstudiantesAsignados) * 100) : 0
 
-    return {
-      total: totalSurveys,
-      respuestas: totalRespuestas,
-      tasa,
-      estudiantesAsignados: totalEstudiantesAsignados,
-    }
+    return { total: totalActive, respuestas: totalRespuestas, tasa, estudiantesAsignados: totalEstudiantesAsignados }
   } catch (error) {
     console.error("Error obteniendo estadísticas:", error)
     return { total: 0, respuestas: 0, tasa: 0, estudiantesAsignados: 0 }

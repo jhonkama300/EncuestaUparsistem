@@ -25,6 +25,7 @@ interface SurveyAssignmentSelectorProps {
   onPonenteChange: (ponenteId: string) => void
   onGruposChange: (grupos: any[]) => void
   onEstudiantesIndividualesChange: (estudiantes: string[]) => void
+  onCategorizacionChange?: (data: { programa: string; nivel: string; periodo: string; grupo?: string }) => void
 }
 
 export function SurveyAssignmentSelector({
@@ -34,6 +35,7 @@ export function SurveyAssignmentSelector({
   onPonenteChange,
   onGruposChange,
   onEstudiantesIndividualesChange,
+  onCategorizacionChange,
 }: SurveyAssignmentSelectorProps) {
   const [uniqueValues, setUniqueValues] = useState<{
     programas: string[];
@@ -171,6 +173,12 @@ export function SurveyAssignmentSelector({
 
     if (!exists && Object.keys(newGrupo).length > 0) {
       onGruposChange([...grupos, newGrupo])
+      onCategorizacionChange?.({
+        programa: filterPrograma,
+        nivel: filterNivel,
+        periodo: filterPeriodo,
+        grupo: filterGrupo || undefined,
+      })
       setFilterPrograma("")
       setFilterNivel("")
       setFilterPeriodo("")

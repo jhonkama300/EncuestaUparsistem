@@ -15,6 +15,8 @@ import {
   X,
   GraduationCap,
   ClipboardList,
+  Settings,
+  UserCog,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -49,24 +51,36 @@ const navItems: NavItem[] = [
     id: "surveys",
     label: "Encuestas",
     icon: <FileSpreadsheet className="h-5 w-5" />,
-    roles: ["admin", "ponente"],
+    roles: ["admin", "uparsistem", "relaciones_corporativas"],
   },
   {
     id: "students",
     label: "Estudiantes",
     icon: <Upload className="h-5 w-5" />,
-    roles: ["admin"],
+    roles: ["admin", "uparsistem"],
   },
   {
     id: "ponentes",
     label: "Ponentes",
     icon: <Users className="h-5 w-5" />,
-    roles: ["admin"],
+    roles: ["admin", "uparsistem"],
   },
   {
     id: "statistics",
     label: "Estadísticas",
     icon: <BarChart3 className="h-5 w-5" />,
+    roles: ["admin", "uparsistem", "relaciones_corporativas"],
+  },
+  {
+    id: "configuraciones",
+    label: "Configuraciones",
+    icon: <Settings className="h-5 w-5" />,
+    roles: ["admin", "uparsistem"],
+  },
+  {
+    id: "usuarios",
+    label: "Usuarios",
+    icon: <UserCog className="h-5 w-5" />,
     roles: ["admin"],
   },
   {

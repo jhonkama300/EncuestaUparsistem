@@ -10,13 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createSurvey, updateSurvey, type SurveyQuestion } from "@/lib/surveys"
 import { GoogleFormsSurveyEditor } from "./google-forms-survey-editor"
 import { SurveyAssignmentSelector } from "./survey-assignment-selector"
-import { ClipboardList, Users, CheckCircle, Calendar, Clock, FileText, Save, X, Plus } from "lucide-react"
-import { getUniqueStudentValues } from "@/lib/students"
+import { ClipboardList, Users, CheckCircle, Clock, FileText, Save } from "lucide-react"
 import { CreateTemplateDialog } from "./create-template-dialog"
 import { SurveyTemplateManager } from "./survey-template-manager"
 import { getTemplates } from "@/lib/survey-templates"
 import { dateInputToLocalISO, localISOToDateInput } from "@/lib/date-utils"
-import { Badge } from "@/components/ui/badge"
 
 interface CreateSurveyDialogProps {
   open: boolean
@@ -45,41 +43,15 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
   const [nivel, setNivel] = useState("")
   const [periodo, setPeriodo] = useState("")
   const [gruposCategoria, setGruposCategoria] = useState<string[]>([])
-  const [grupoInput, setGrupoInput] = useState("")
   const [fechaEncuesta, setFechaEncuesta] = useState("")
   const [horaInicio, setHoraInicio] = useState("")
   const [horaFin, setHoraFin] = useState("")
   const [auditorio, setAuditorio] = useState("") // Agregado estado para auditorio
 
-  const [uniqueValues, setUniqueValues] = useState<{
-    programas: string[];
-    niveles: string[];
-    periodos: string[];
-    grupos: string[];
-    jornadas: string[];
-  }>({
-    programas: [],
-    niveles: [],
-    periodos: [],
-    grupos: [],
-    jornadas: [],
-  })
-
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState("preguntas")
 
   const [createTemplateDialogOpen, setCreateTemplateDialogOpen] = useState(false)
-  const [showTemplateSelector, setShowTemplateSelector] = useState(false)
-  const [grupoError, setGrupoError] = useState("") // Agregado estado para mensaje de error de duplicados
-
-  useEffect(() => {
-    loadFilters()
-  }, [])
-
-  const loadFilters = async () => {
-    const values = await getUniqueStudentValues()
-    setUniqueValues(values)
-  }
 
   useEffect(() => {
     if (editingSurvey && open) {
@@ -123,14 +95,11 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
       setNivel("")
       setPeriodo("")
       setGruposCategoria([])
-      setGrupoInput("")
       setFechaEncuesta("")
       setHoraInicio("")
       setHoraFin("")
       setAuditorio("") // Resetear auditorio al cerrar
       setActiveTab("preguntas")
-      setShowTemplateSelector(false)
-      setGrupoError("")
     }
   }, [editingSurvey, open])
 
@@ -142,30 +111,8 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
       setPreguntas(template.preguntas)
       if (!titulo) setTitulo(template.nombre)
       if (!descripcion) setDescripcion(template.descripcion)
-      setShowTemplateSelector(false)
       setActiveTab("preguntas")
     }
-  }
-
-  const addGrupoCategoria = () => {
-    const grupoTrimmed = grupoInput.trim()
-
-    if (!grupoTrimmed) {
-      return
-    }
-
-    if (gruposCategoria.includes(grupoTrimmed)) {
-      setGrupoError("Este grupo ya ha sido agregado")
-      return
-    }
-
-    setGruposCategoria([...gruposCategoria, grupoTrimmed])
-    setGrupoInput("")
-    setGrupoError("")
-  }
-
-  const removeGrupoCategoria = (index: number) => {
-    setGruposCategoria(gruposCategoria.filter((_, i) => i !== index))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -251,7 +198,7 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
               <div className="px-4 sm:px-6 pt-4 pb-2 border-b bg-white sticky top-0 z-20">
-                <TabsList className="grid w-full grid-cols-4 h-auto p-1">
+                <TabsList className="grid w-full grid-cols-3 h-auto p-1">
                   <TabsTrigger value="preguntas" className="gap-2 py-2 sm:py-3 text-xs sm:text-sm">
                     <ClipboardList className="h-3 w-3 sm:h-4 sm:w-4" />
                     <span>Preguntas</span>
@@ -262,10 +209,6 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
                   <TabsTrigger value="plantillas" className="gap-2 py-2 sm:py-3 text-xs sm:text-sm">
                     <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
                     <span>Plantillas</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="info" className="gap-2 py-2 sm:py-3 text-xs sm:text-sm">
-                    <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span>Información</span>
                   </TabsTrigger>
                   <TabsTrigger value="asignacion" className="gap-2 py-2 sm:py-3 text-xs sm:text-sm">
                     <Users className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -313,117 +256,8 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
                   </div>
                 </TabsContent>
 
-                <TabsContent value="info" className="px-4 sm:px-6 py-4 sm:py-6 mt-0 h-full">
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-semibold text-emerald-800 mb-4 flex items-center gap-2">
-                        <Calendar className="h-5 w-5" />
-                        Categorización de la Encuesta
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Programa</Label>
-                          <Input
-                            type="text"
-                            placeholder="Buscar programa..."
-                            value={programa}
-                            onChange={(e) => setPrograma(e.target.value)}
-                            list="programas-cat-list"
-                          />
-                          <datalist id="programas-cat-list">
-                            {uniqueValues.programas.map((p: string) => (
-                              <option key={p} value={p} />
-                            ))}
-                          </datalist>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Nivel</Label>
-                          <Input
-                            type="text"
-                            placeholder="Buscar nivel..."
-                            value={nivel}
-                            onChange={(e) => setNivel(e.target.value)}
-                            list="niveles-cat-list"
-                          />
-                          <datalist id="niveles-cat-list">
-                            {uniqueValues.niveles.map((n: string) => (
-                              <option key={n} value={n} />
-                            ))}
-                          </datalist>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Período</Label>
-                          <Input
-                            type="text"
-                            placeholder="Buscar período..."
-                            value={periodo}
-                            onChange={(e) => setPeriodo(e.target.value)}
-                            list="periodos-cat-list"
-                          />
-                          <datalist id="periodos-cat-list">
-                            {uniqueValues.periodos.map((p: string) => (
-                              <option key={p} value={p} />
-                            ))}
-                          </datalist>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Grupos</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              type="text"
-                              placeholder="Buscar grupo..."
-                              value={grupoInput}
-                              onChange={(e) => {
-                                setGrupoInput(e.target.value)
-                                if (grupoError) setGrupoError("")
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault()
-                                  addGrupoCategoria()
-                                }
-                              }}
-                              list="grupos-cat-list"
-                            />
-                            <Button
-                              type="button"
-                              onClick={addGrupoCategoria}
-                              disabled={!grupoInput.trim()}
-                              size="icon"
-                              className="flex-shrink-0"
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <datalist id="grupos-cat-list">
-                            {uniqueValues.grupos.map((g: string) => (
-                              <option key={g} value={g} />
-                            ))}
-                          </datalist>
-                          {grupoError && <p className="text-sm text-red-600">{grupoError}</p>}
-                          {gruposCategoria.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {gruposCategoria.map((grupo, index) => (
-                                <Badge key={index} variant="secondary" className="flex items-center gap-2">
-                                  {grupo}
-                                  <button
-                                    type="button"
-                                    onClick={() => removeGrupoCategoria(index)}
-                                    className="hover:bg-red-100 rounded-full p-0.5"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
+                <TabsContent value="asignacion" className="px-4 sm:px-6 py-4 sm:py-6 mt-0 h-full">
+                  <div className="space-y-6 mb-6">
                     <div>
                       <h3 className="text-lg font-semibold text-emerald-800 mb-4 flex items-center gap-2">
                         <Clock className="h-5 w-5" />
@@ -474,9 +308,7 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
                       </div>
                     </div>
                   </div>
-                </TabsContent>
 
-                <TabsContent value="asignacion" className="px-4 sm:px-6 py-4 sm:py-6 mt-0 h-full">
                   <SurveyAssignmentSelector
                     ponenteId={ponenteId}
                     grupos={grupos}
@@ -484,6 +316,12 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
                     onPonenteChange={setPonente}
                     onGruposChange={setGrupos}
                     onEstudiantesIndividualesChange={setEstudiantesIndividuales}
+                    onCategorizacionChange={({ programa: p, nivel: n, periodo: per, grupo: g }) => {
+                      if (p) setPrograma(p)
+                      if (n) setNivel(n)
+                      if (per) setPeriodo(per)
+                      if (g) setGruposCategoria((prev) => prev.includes(g) ? prev : [...prev, g])
+                    }}
                   />
                 </TabsContent>
               </div>

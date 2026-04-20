@@ -6,8 +6,8 @@ export interface UserData {
   documento: string
   nombre: string
   email?: string
-  rol: "admin" | "estudiante"
-  password?: string // Solo para admin
+  rol: "admin" | "estudiante" | "uparsistem" | "relaciones_corporativas"
+  password?: string
   activo: boolean
   fechaCreacion?: string
 }
@@ -44,8 +44,8 @@ export async function loginWithDocumentAndPassword(documentNumber: string, passw
     throw new Error("Número de documento no registrado en la base de datos")
   }
 
-  if (userData.rol !== "admin") {
-    throw new Error("Este usuario no tiene permisos de administrador")
+  if (!["admin", "uparsistem", "relaciones_corporativas"].includes(userData.rol)) {
+    throw new Error("Este usuario no tiene permisos de acceso al panel")
   }
 
   if (!userData.activo) {

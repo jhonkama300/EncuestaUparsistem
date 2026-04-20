@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { UserPlus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Star } from "lucide-react"
 import { getPonentes, deletePonente } from "@/lib/ponentes"
 import { AddPonenteDialog } from "./add-ponente-dialog"
-import { collection, getDocs, query, where } from "firebase/firestore"
+import { collection, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import {
   AlertDialog,
@@ -56,63 +56,47 @@ export function PonenteUploader() {
 
   const loadCalificaciones = async () => {
     try {
-      const encuestasRef = collection(db, "encuestas")
-      const respuestasRef = collection(db, "respuestas")
-
-      const calificacionesPorPonente: Record<string, { suma: number; count: number }> = {}
-
-      for (const ponente of ponentes) {
-        // Buscar encuestas de este ponente
-        const qEncuestas = query(encuestasRef, where("ponenteId", "==", ponente.id))
-        const encuestasSnapshot = await getDocs(qEncuestas)
-
-        let sumaCalificaciones = 0
-        let totalRespuestas = 0
-
-        for (const encuestaDoc of encuestasSnapshot.docs) {
-          // Buscar respuestas de esta encuesta
-          const qRespuestas = query(respuestasRef, where("encuestaId", "==", encuestaDoc.id))
-          const respuestasSnapshot = await getDocs(qRespuestas)
-
-          respuestasSnapshot.docs.forEach((respuestaDoc) => {
-            const respuestaData = respuestaDoc.data()
-            const respuestas = respuestaData.respuestas || {}
-
-            // Mapeo de respuestas a valores numéricos
-            const SCALE_VALUES: Record<string, number> = {
-              excelente: 5,
-              bueno: 4,
-              aceptable: 3,
-              regular: 2,
-              malo: 1,
-            }
-
-            // Procesar cada respuesta
-            Object.keys(respuestas).forEach((key) => {
-              const answer = respuestas[key]
-              const answerStr = String(answer).toLowerCase().trim()
-
-              const value = SCALE_VALUES[answerStr]
-              if (value !== undefined && !isNaN(value)) {
-                sumaCalificaciones += value
-                totalRespuestas++
-              }
-            })
-          })
-        }
-
-        if (totalRespuestas > 0) {
-          calificacionesPorPonente[ponente.id] = {
-            suma: sumaCalificaciones,
-            count: totalRespuestas,
-          }
-        }
+      const SCALE_VALUES: Record<string, number> = {
+        excelente: 5,
+        bueno: 4,
+        aceptable: 3,
+        regular: 2,
+        malo: 1,
       }
 
-      // Calcular promedios
+      // 2 queries total instead of N×M
+      const [encuestasSnap, respuestasSnap] = await Promise.all([
+        getDocs(collection(db, "encuestas")),
+        getDocs(collection(db, "respuestas")),
+      ])
+
+      // Map encuestaId → ponenteId
+      const encuestaToponente: Record<string, string> = {}
+      encuestasSnap.docs.forEach((d) => {
+        const data = d.data()
+        if (data.ponenteId) encuestaToponente[d.id] = data.ponenteId
+      })
+
+      // Accumulate scores per ponente
+      const acc: Record<string, { suma: number; count: number }> = {}
+      respuestasSnap.docs.forEach((d) => {
+        const data = d.data()
+        const ponenteId = encuestaToponente[data.encuestaId]
+        if (!ponenteId) return
+        const respuestas = data.respuestas || {}
+        Object.values(respuestas).forEach((answer) => {
+          const val = SCALE_VALUES[String(answer).toLowerCase().trim()]
+          if (val !== undefined) {
+            if (!acc[ponenteId]) acc[ponenteId] = { suma: 0, count: 0 }
+            acc[ponenteId].suma += val
+            acc[ponenteId].count++
+          }
+        })
+      })
+
       const promedios: Record<string, number> = {}
-      Object.entries(calificacionesPorPonente).forEach(([ponenteId, data]) => {
-        promedios[ponenteId] = data.suma / data.count
+      Object.entries(acc).forEach(([id, { suma, count }]) => {
+        promedios[id] = suma / count
       })
 
       setCalificaciones(promedios)

@@ -5,6 +5,8 @@ import { SurveyManager } from "./survey-manager"
 import { StudentUploader } from "./student-uploader"
 import { PonenteUploader } from "./ponente-uploader"
 import { AdvancedStatisticsView } from "./advanced-statistics-view"
+import { Configuraciones } from "./configuraciones"
+import { GestionUsuarios } from "./gestion-usuarios"
 import { AppSidebar } from "./app-sidebar"
 
 interface AdminViewProps {
@@ -25,6 +27,8 @@ export function AdminView({ user, onLogout }: AdminViewProps) {
           {activeTab === "students" && <StudentUploader />}
           {activeTab === "ponentes" && <PonenteUploader />}
           {activeTab === "statistics" && <AdvancedStatisticsView />}
+          {activeTab === "configuraciones" && <Configuraciones />}
+          {activeTab === "usuarios" && <GestionUsuarios />}
         </div>
       </main>
     </div>

@@ -1,15 +1,14 @@
 "use client"
 
-import type { User } from "firebase/auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { LogOut, UserIcon, CheckCircle } from "lucide-react"
 import type { UserData } from "@/lib/auth"
 
 interface MainViewProps {
-  user: User
+  user: UserData
   userData: UserData
-  onLogout: () => Promise<void>
+  onLogout: () => void
 }
 
 export function MainView({ user, userData, onLogout }: MainViewProps) {
@@ -72,7 +71,7 @@ export function MainView({ user, userData, onLogout }: MainViewProps) {
                 )}
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-gray-600">ID de Usuario:</span>
-                  <span className="font-mono text-sm text-gray-700">{user.uid}</span>
+                  <span className="font-mono text-sm text-gray-700">{user.documento}</span>
                 </div>
               </div>
             </CardContent>

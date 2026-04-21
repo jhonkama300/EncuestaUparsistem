@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { getTemplates, deleteTemplate } from "@/lib/survey-templates"
+import type { UserData } from "@/lib/auth"
 import { FileText, Trash2, Calendar, ListChecks } from "lucide-react"
 import {
   AlertDialog,
@@ -19,9 +20,10 @@ import {
 
 interface SurveyTemplateManagerProps {
   onSelectTemplate?: (templateId: string) => void
+  user?: UserData
 }
 
-export function SurveyTemplateManager({ onSelectTemplate }: SurveyTemplateManagerProps) {
+export function SurveyTemplateManager({ onSelectTemplate, user }: SurveyTemplateManagerProps) {
   const [templates, setTemplates] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -33,7 +35,7 @@ export function SurveyTemplateManager({ onSelectTemplate }: SurveyTemplateManage
 
   const loadTemplates = async () => {
     setLoading(true)
-    const data = await getTemplates()
+    const data = await getTemplates(user?.rol || "estudiante")
     setTemplates(data)
     setLoading(false)
   }
@@ -42,7 +44,7 @@ export function SurveyTemplateManager({ onSelectTemplate }: SurveyTemplateManage
     if (!templateToDelete) return
 
     try {
-      await deleteTemplate(templateToDelete)
+      await deleteTemplate(templateToDelete, user?.rol || "estudiante")
       await loadTemplates()
       setDeleteDialogOpen(false)
       setTemplateToDelete(null)

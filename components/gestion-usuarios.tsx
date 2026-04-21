@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { UserCog, UserPlus, Pencil, Trash2, Shield, Users } from "lucide-react"
 import { getUsers, createUser, updateUser, deleteUser, type AppUser, type AppRole } from "@/lib/users"
+import { UserData } from "@/lib/auth"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,7 +39,7 @@ const ROLE_COLORS: Record<AppRole, string> = {
 
 const MANAGEABLE_ROLES: AppRole[] = ["admin", "uparsistem", "relaciones_corporativas"]
 
-export function GestionUsuarios() {
+export function GestionUsuarios({ user }: { user: UserData }) {
   const [users, setUsers] = useState<AppUser[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)

@@ -40,8 +40,9 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
+import type { UserData } from "@/lib/auth"
 
-export function SurveyManager() {
+export function SurveyManager({ user }: { user: UserData }) {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showResultsDialog, setShowResultsDialog] = useState(false)
   const [showStatisticsDialog, setShowStatisticsDialog] = useState(false)
@@ -77,9 +78,9 @@ export function SurveyManager() {
     loadStats()
     const unsubscribe = subscribeToAllSurveys((surveysData) => {
       setSurveys(surveysData)
-    })
+    }, user.rol)
     return () => { unsubscribe() }
-  }, [])
+  }, [user.rol])
 
   useEffect(() => {
     if (surveys.length === 0) return
@@ -119,7 +120,7 @@ export function SurveyManager() {
   }
 
   const loadStats = async () => {
-    const statsData = await getSurveyStats()
+    const statsData = await getSurveyStats(user.rol)
     setStats(statsData)
   }
 
@@ -185,7 +186,7 @@ export function SurveyManager() {
     if (!surveyToToggle) return
 
     try {
-      await updateSurvey(surveyToToggle.id, { activa: !surveyToToggle.activa })
+      await updateSurvey(surveyToToggle.id, { activa: !surveyToToggle.activa }, user.rol)
       toast({
         title: !surveyToToggle.activa ? "Encuesta habilitada" : "Encuesta deshabilitada",
         description: `La encuesta "${surveyToToggle.titulo}" ha sido ${!surveyToToggle.activa ? "habilitada" : "deshabilitada"}.`,
@@ -213,7 +214,7 @@ export function SurveyManager() {
     if (!surveyToDelete) return
 
     try {
-      await deleteSurvey(surveyToDelete.id)
+      await deleteSurvey(surveyToDelete.id, user.rol)
       toast({
         title: "Encuesta eliminada",
         description: `La encuesta "${surveyToDelete.titulo}" y sus respuestas han sido eliminadas exitosamente.`,
@@ -436,133 +437,132 @@ export function SurveyManager() {
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-800">Encuestas Recientes</h3>
         </div>
-
-          <Card className="mb-4 border-emerald-200 bg-emerald-50/50">
-            <CardContent className="py-4 px-5">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">Buscar por nombre</Label>
-                  <Input
-                    type="text"
-                    placeholder="Nombre de la encuesta..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="h-10"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">Tipo</Label>
-                  <Select value={filterTipo} onValueChange={setFilterTipo}>
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="seminario">Seminarios</SelectItem>
-                      <SelectItem value="diplomado">Diplomados</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">Ponente</Label>
-                  <Select value={filterPonente} onValueChange={setFilterPonente}>
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos los ponentes</SelectItem>
-                      {ponentes.map((ponente) => (
-                        <SelectItem key={ponente.id} value={ponente.id}>
-                          {ponente.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">Programa</Label>
-                  <Select value={filterPrograma} onValueChange={setFilterPrograma}>
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos los programas</SelectItem>
-                      {programas.map((programa) => (
-                        <SelectItem key={programa} value={programa}>
-                          {programa}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">Grupo</Label>
-                  <Select value={filterGrupo} onValueChange={setFilterGrupo}>
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos los grupos</SelectItem>
-                      {grupos.map((grupo) => (
-                        <SelectItem key={grupo} value={grupo}>
-                          {grupo}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">Periodo</Label>
-                  <Select value={filterPeriodo} onValueChange={setFilterPeriodo}>
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos los periodos</SelectItem>
-                      {periodos.map((periodo) => (
-                        <SelectItem key={periodo} value={periodo}>
-                          {periodo}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+        <Card className="mb-4 border-emerald-200 bg-emerald-50/50">
+          <CardContent className="py-4 px-5">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Buscar por nombre</Label>
+                <Input
+                  type="text"
+                  placeholder="Nombre de la encuesta..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="h-10"
+                />
               </div>
 
-              {(searchTerm ||
-                filterTipo !== "all" ||
-                filterPonente !== "all" ||
-                filterPrograma !== "all" ||
-                filterGrupo !== "all" ||
-                filterPeriodo !== "all") && (
-                <div className="mt-4 flex items-center justify-between pt-4 border-t border-emerald-200">
-                  <p className="text-sm text-gray-600">
-                    Mostrando {filteredSurveys.length} de {surveys.length} encuestas
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSearchTerm("")
-                      setFilterTipo("all")
-                      setFilterPonente("all")
-                      setFilterPrograma("all")
-                      setFilterGrupo("all")
-                      setFilterPeriodo("all")
-                    }}
-                    className="text-emerald-700 hover:text-emerald-800 hover:bg-emerald-100"
-                  >
-                    Limpiar Filtros
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Tipo</Label>
+                <Select value={filterTipo} onValueChange={setFilterTipo}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="seminario">Seminarios</SelectItem>
+                    <SelectItem value="diplomado">Diplomados</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Ponente</Label>
+                <Select value={filterPonente} onValueChange={setFilterPonente}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los ponentes</SelectItem>
+                    {ponentes.map((ponente) => (
+                      <SelectItem key={ponente.id} value={ponente.id}>
+                        {ponente.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Programa</Label>
+                <Select value={filterPrograma} onValueChange={setFilterPrograma}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los programas</SelectItem>
+                    {programas.map((programa) => (
+                      <SelectItem key={programa} value={programa}>
+                        {programa}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Grupo</Label>
+                <Select value={filterGrupo} onValueChange={setFilterGrupo}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los grupos</SelectItem>
+                    {grupos.map((grupo) => (
+                      <SelectItem key={grupo} value={grupo}>
+                        {grupo}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Periodo</Label>
+                <Select value={filterPeriodo} onValueChange={setFilterPeriodo}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los periodos</SelectItem>
+                    {periodos.map((periodo) => (
+                      <SelectItem key={periodo} value={periodo}>
+                        {periodo}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {(searchTerm ||
+              filterTipo !== "all" ||
+              filterPonente !== "all" ||
+              filterPrograma !== "all" ||
+              filterGrupo !== "all" ||
+              filterPeriodo !== "all") && (
+              <div className="mt-4 flex items-center justify-between pt-4 border-t border-emerald-200">
+                <p className="text-sm text-gray-600">
+                  Mostrando {filteredSurveys.length} de {surveys.length} encuestas
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm("")
+                    setFilterTipo("all")
+                    setFilterPonente("all")
+                    setFilterPrograma("all")
+                    setFilterGrupo("all")
+                    setFilterPeriodo("all")
+                  }}
+                  className="text-emerald-700 hover:text-emerald-800 hover:bg-emerald-100"
+                >
+                  Limpiar Filtros
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <div className="space-y-4">
           {filteredSurveys.length === 0 ? (
@@ -775,6 +775,7 @@ export function SurveyManager() {
         onOpenChange={handleDialogClose}
         onSuccess={loadData}
         editingSurvey={editingSurvey}
+        user={user}
       />
 
       {selectedSurvey && (
@@ -785,18 +786,21 @@ export function SurveyManager() {
             surveyId={selectedSurvey.id}
             surveyTitle={selectedSurvey.titulo}
             surveyData={selectedSurvey}
+            user={user}
           />
           <SurveyResultsDialog
             open={showResultsDialog}
             onOpenChange={setShowResultsDialog}
             surveyId={selectedSurvey.id}
             surveyTitle={selectedSurvey.titulo}
+            user={user}
           />
           <SurveyStatisticsDialog
             open={showStatisticsDialog}
             onOpenChange={setShowStatisticsDialog}
             surveyId={selectedSurvey.id}
             surveyTitle={selectedSurvey.titulo}
+            user={user}
           />
         </>
       )}

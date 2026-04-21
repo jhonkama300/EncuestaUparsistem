@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getAllSurveys, getSurveyResponses } from "@/lib/surveys"
 import { getPonentes } from "@/lib/ponentes"
+import { UserData } from "@/lib/auth"
 import {
   BarChart,
   Bar,
@@ -50,7 +51,8 @@ type QuestionStat = {
   validResponses: number
 }
 
-export function AdvancedStatisticsView() {
+export function AdvancedStatisticsView({ user }: { user: UserData }) {
+  const role = user?.rol || "estudiante"
   const [surveys, setSurveys] = useState<any[]>([])
   const [ponentes, setPonentes] = useState<any[]>([])
   const [selectedSurveyId, setSelectedSurveyId] = useState<string>("all")
@@ -84,7 +86,7 @@ export function AdvancedStatisticsView() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [surveysData, ponentesData] = await Promise.all([getAllSurveys(), getPonentes()])
+      const [surveysData, ponentesData] = await Promise.all([getAllSurveys(role), getPonentes(role)])
       setSurveys(surveysData)
       setPonentes(ponentesData)
     } catch (error) {
@@ -97,7 +99,7 @@ export function AdvancedStatisticsView() {
   const loadResponses = async (surveyId: string) => {
     setLoading(true)
     try {
-      const data = await getSurveyResponses(surveyId)
+      const data = await getSurveyResponses(surveyId, role)
       const respuestasArray = data?.respuestas || []
       setResponses(Array.isArray(respuestasArray) ? respuestasArray : [])
       console.log("[v0] Respuestas cargadas:", respuestasArray.length)
@@ -118,7 +120,7 @@ export function AdvancedStatisticsView() {
     try {
       const arrays = await Promise.all(
         surveyIds.map(async (id) => {
-          const data = await getSurveyResponses(id)
+          const data = await getSurveyResponses(id, role)
           return data?.respuestas || []
         }),
       )

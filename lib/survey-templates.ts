@@ -1,5 +1,5 @@
 import { collection, addDoc, getDocs, doc, deleteDoc, query, orderBy } from "firebase/firestore"
-import { db } from "./firebase"
+import { db, getRoleCollectionName } from "./firebase"
 import type { SurveyQuestion } from "./surveys"
 
 export interface SurveyTemplate {
@@ -10,9 +10,9 @@ export interface SurveyTemplate {
   fechaCreacion: string
 }
 
-export async function createTemplate(templateData: SurveyTemplate) {
+export async function createTemplate(templateData: SurveyTemplate, role: string) {
   try {
-    const templatesRef = collection(db, "plantillas_encuestas")
+    const templatesRef = collection(db, getRoleCollectionName("plantillas_encuestas", role))
     const docRef = await addDoc(templatesRef, {
       ...templateData,
       fechaCreacion: new Date().toISOString(),
@@ -25,9 +25,9 @@ export async function createTemplate(templateData: SurveyTemplate) {
   }
 }
 
-export async function getTemplates() {
+export async function getTemplates(role: string) {
   try {
-    const templatesRef = collection(db, "plantillas_encuestas")
+    const templatesRef = collection(db, getRoleCollectionName("plantillas_encuestas", role))
     const q = query(templatesRef, orderBy("fechaCreacion", "desc"))
     const querySnapshot = await getDocs(q)
 
@@ -36,14 +36,14 @@ export async function getTemplates() {
       ...doc.data(),
     }))
   } catch (error) {
-    console.error("[v0] Error obteniendo plantillas:", error)
+    console.error("Error obteniendo plantillas:", error)
     return []
   }
 }
 
-export async function deleteTemplate(templateId: string) {
+export async function deleteTemplate(templateId: string, role: string) {
   try {
-    const templateRef = doc(db, "plantillas_encuestas", templateId)
+    const templateRef = doc(db, getRoleCollectionName("plantillas_encuestas", role), templateId)
     await deleteDoc(templateRef)
     console.log("[v0] Plantilla eliminada:", templateId)
   } catch (error) {
@@ -54,6 +54,7 @@ export async function deleteTemplate(templateId: string) {
 
 export async function createSurveyFromTemplate(
   templateId: string,
+  role: string,
   surveyData: {
     titulo: string
     descripcion: string
@@ -69,8 +70,8 @@ export async function createSurveyFromTemplate(
   },
 ) {
   try {
-    const templates = await getTemplates()
-    const template = templates.find((t: any) => t.id === templateId)
+    const templates = await getTemplates(role)
+    const template = templates.find((t: any) => t.id === templateId) as any
 
     if (!template) {
       throw new Error("Plantilla no encontrada")

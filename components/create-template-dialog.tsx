@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { createTemplate } from "@/lib/survey-templates"
+import type { UserData } from "@/lib/auth"
 import { FileText, CheckCircle } from "lucide-react"
 
 interface CreateTemplateDialogProps {
@@ -20,9 +21,10 @@ interface CreateTemplateDialogProps {
     descripcion: string
     preguntas: any[]
   }
+  user?: UserData
 }
 
-export function CreateTemplateDialog({ open, onOpenChange, onSuccess, surveyData }: CreateTemplateDialogProps) {
+export function CreateTemplateDialog({ open, onOpenChange, onSuccess, surveyData, user }: CreateTemplateDialogProps) {
   const [nombre, setNombre] = useState("")
   const [descripcion, setDescripcion] = useState("")
   const [categoria, setCategoria] = useState("")
@@ -39,7 +41,7 @@ export function CreateTemplateDialog({ open, onOpenChange, onSuccess, surveyData
         preguntas: surveyData?.preguntas || [],
         categoria: categoria || undefined,
         fechaCreacion: new Date().toISOString(),
-      })
+      }, user?.rol || "estudiante")
 
       onSuccess()
       onOpenChange(false)

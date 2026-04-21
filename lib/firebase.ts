@@ -16,4 +16,11 @@ const firebaseConfig = {
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 export const db = getFirestore(app)
+
+export function getRoleCollectionName(collectionName: string, role: string): string {
+  if (role === "admin") return collectionName
+  const prefix = role === "relaciones_corporativas" ? "relaciones" : "uparsistem"
+  return `${prefix}_${collectionName}`
+}
+
 setPersistence(auth, browserLocalPersistence).catch(console.error)

@@ -22,7 +22,9 @@ import { Badge } from "@/components/ui/badge"
 import { AssignStudentsToGroupDialog } from "@/components/assign-students-to-group-dialog"
 import { AddStudentDialog } from "@/components/add-student-dialog"
 
-export function StudentUploader(): ReactElement {
+import type { UserData } from "@/lib/auth"
+
+export function StudentUploader({ user }: { user: UserData }): ReactElement {
   const [students, setStudents] = useState<any[]>([])
   const [filteredStudents, setFilteredStudents] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -42,9 +44,9 @@ export function StudentUploader(): ReactElement {
     const unsubscribe = subscribeToStudents((studentsData) => {
       setStudents(studentsData)
       setFilteredStudents(studentsData)
-    })
+    }, user.rol)
     return () => unsubscribe()
-  }, [])
+  }, [user.rol])
 
   useEffect(() => {
     filterStudents()
@@ -493,18 +495,19 @@ export function StudentUploader(): ReactElement {
             </>
           )}
         </CardContent>
-      </Card>
+</Card>
 
       <AddStudentDialog
         open={showAddStudentDialog}
         onOpenChange={setShowAddStudentDialog}
         onSuccess={() => setShowAddStudentDialog(false)}
+        user={user}
       />
-
       <AssignStudentsToGroupDialog
         open={showAssignDialog}
         onOpenChange={setShowAssignDialog}
         onSuccess={() => setShowAssignDialog(false)}
+        user={user}
       />
     </div>
   )

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Plus, X, Users, UserCheck, Filter, Check, ChevronsUpDown } from "lucide-react"
 import { getUniqueStudentValues, getStudentsByFilters } from "@/lib/students"
 import { getPonentes } from "@/lib/ponentes"
+import type { UserData } from "@/lib/auth"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
@@ -25,6 +26,7 @@ interface SurveyAssignmentSelectorProps {
   onGruposChange: (grupos: any[]) => void
   onEstudiantesIndividualesChange: (estudiantes: string[]) => void
   onCategorizacionChange?: (data: { programa: string; nivel: string; periodo: string; grupo?: string }) => void
+  user?: UserData
 }
 
 export function SurveyAssignmentSelector({
@@ -35,6 +37,7 @@ export function SurveyAssignmentSelector({
   onGruposChange,
   onEstudiantesIndividualesChange,
   onCategorizacionChange,
+  user,
 }: SurveyAssignmentSelectorProps) {
   const [allProgramas, setAllProgramas] = useState<string[]>([])
   const [ponentes, setPonentes] = useState<any[]>([])
@@ -68,9 +71,9 @@ export function SurveyAssignmentSelector({
 
   // Load programas list once
   const loadInitialData = async () => {
-    const values = await getUniqueStudentValues()
+    const values = await getUniqueStudentValues(user?.rol || "estudiante")
     setAllProgramas(values.programas)
-    const ponentesData = await getPonentes()
+    const ponentesData = await getPonentes(user?.rol || "estudiante")
     setPonentes(ponentesData)
   }
 
@@ -83,7 +86,7 @@ export function SurveyAssignmentSelector({
       setFilterGrupo("")
       return
     }
-    getStudentsByFilters({ programa: filterPrograma }).then((students) => {
+    getStudentsByFilters({ programa: filterPrograma }, user?.rol || "estudiante").then((students) => {
       const set = new Set(students.map((s: any) => s.nivel).filter(Boolean))
       setAvailableNiveles(Array.from(set as Set<string>).sort())
     })
@@ -97,7 +100,7 @@ export function SurveyAssignmentSelector({
       setFilterGrupo("")
       return
     }
-    getStudentsByFilters({ programa: filterPrograma, nivel: filterNivel }).then((students) => {
+    getStudentsByFilters({ programa: filterPrograma, nivel: filterNivel }, user?.rol || "estudiante").then((students) => {
       const set = new Set(students.map((s: any) => s.periodo).filter(Boolean))
       setAvailablePeriodos(Array.from(set as Set<string>).sort())
     })
@@ -110,7 +113,7 @@ export function SurveyAssignmentSelector({
       setFilterGrupo("")
       return
     }
-    getStudentsByFilters({ programa: filterPrograma, nivel: filterNivel, periodo: filterPeriodo }).then((students) => {
+    getStudentsByFilters({ programa: filterPrograma, nivel: filterNivel, periodo: filterPeriodo }, user?.rol || "estudiante").then((students) => {
       const set = new Set(students.map((s: any) => s.grupo).filter(Boolean))
       setAvailableGrupos(Array.from(set as Set<string>).sort())
     })
@@ -130,7 +133,7 @@ export function SurveyAssignmentSelector({
     }
     const groupCounts = await Promise.all(
       grupos.map(async (grupo) => {
-        const students = await getStudentsByFilters(grupo)
+        const students = await getStudentsByFilters(grupo, user?.rol || "estudiante")
         return students.length
       }),
     )

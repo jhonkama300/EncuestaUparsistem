@@ -17,17 +17,19 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { UserPlus, Loader2 } from "lucide-react"
 import { collection, addDoc, query, where, getDocs } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { db, getRoleCollectionName } from "@/lib/firebase"
 import type { StudentData } from "@/lib/students"
 import { getUniqueStudentValues } from "@/lib/students"
+import type { UserData } from "@/lib/auth"
 
 interface AddStudentDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
+  user: UserData
 }
 
-export function AddStudentDialog({ open, onOpenChange, onSuccess }: AddStudentDialogProps) {
+export function AddStudentDialog({ open, onOpenChange, onSuccess, user }: AddStudentDialogProps) {
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState<StudentData>({
     primerNombre: "",
@@ -58,11 +60,11 @@ export function AddStudentDialog({ open, onOpenChange, onSuccess }: AddStudentDi
     if (open) {
       loadUniqueValues()
     }
-  }, [open])
+  }, [open, user.rol])
 
   const loadUniqueValues = async () => {
     try {
-      const values = await getUniqueStudentValues()
+      const values = await getUniqueStudentValues(user.rol)
       setUniqueValues({
         jornadas: values.jornadas,
         programas: values.programas,
@@ -96,7 +98,7 @@ export function AddStudentDialog({ open, onOpenChange, onSuccess }: AddStudentDi
       }
 
       // Verificar si el estudiante ya existe
-      const estudiantesRef = collection(db, "estudiantes")
+      const estudiantesRef = collection(db, getRoleCollectionName("estudiantes", user.rol))
       const qEstudiante = query(estudiantesRef, where("documento", "==", formData.documento))
       const estudianteSnapshot = await getDocs(qEstudiante)
 
@@ -107,7 +109,7 @@ export function AddStudentDialog({ open, onOpenChange, onSuccess }: AddStudentDi
       }
 
       // Agregar estudiante
-      await addDoc(collection(db, "estudiantes"), formData)
+      await addDoc(collection(db, getRoleCollectionName("estudiantes", user.rol)), formData)
 
       // Verificar si el usuario ya existe
       const usuariosRef = collection(db, "usuarios")

@@ -48,7 +48,7 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
   const loadSurveys = async () => {
     try {
       console.log("[v0] Cargando encuestas para:", user.documento)
-      const assignedSurveys = await getAssignedSurveys(user.documento)
+      const assignedSurveys = await getAssignedSurveys(user.documento, user.rol)
       console.log("[v0] Encuestas cargadas:", assignedSurveys.length)
       assignedSurveys.forEach((survey) => {
         console.log(
@@ -74,7 +74,7 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
     console.log("[v0] handleSubmitSurvey - Documento estudiante:", user.documento)
 
     try {
-      await submitSurveyResponse(surveyId, user.documento, responses)
+      await submitSurveyResponse(surveyId, user.documento, responses, user.rol)
       console.log("[v0] handleSubmitSurvey - Respuesta guardada exitosamente")
 
       await loadSurveys()

@@ -38,6 +38,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import * as XLSX from "xlsx"
+import type { UserData } from "@/lib/auth"
 
 interface PreviewData {
   primerNombre: string
@@ -52,7 +53,7 @@ interface PreviewData {
   nivel: string
 }
 
-export function Configuraciones() {
+export function Configuraciones({ user }: { user: UserData }) {
   const [students, setStudents] = useState<any[]>([])
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -69,9 +70,9 @@ export function Configuraciones() {
   const fileInputRef = React.createRef<HTMLInputElement>()
 
   useEffect(() => {
-    const unsubscribe = subscribeToStudents((data) => setStudents(data))
+    const unsubscribe = subscribeToStudents((data) => setStudents(data), user.rol)
     return () => unsubscribe()
-  }, [])
+  }, [user.rol])
 
   const uniqueProgramas = Array.from(new Set(students.map((s) => s.programa).filter(Boolean)))
   const uniqueGrupos = Array.from(new Set(students.map((s) => s.grupo).filter(Boolean)))
@@ -155,7 +156,7 @@ export function Configuraciones() {
     setUploading(true)
     setShowPreview(false)
     try {
-      const uploadResult = await uploadStudentsFromExcel(file)
+      const uploadResult = await uploadStudentsFromExcel(file, user.rol)
       setResult(uploadResult)
       setFile(null)
       setPreviewData([])
@@ -172,7 +173,7 @@ export function Configuraciones() {
   const handleResetByPrograma = async () => {
     if (!resetPrograma) return
     try {
-      const count = await resetStudentsByPrograma(resetPrograma)
+      const count = await resetStudentsByPrograma(resetPrograma, user.rol)
       alert(`${count} estudiantes eliminados del programa ${resetPrograma}`)
       setResetPrograma("")
     } catch {
@@ -183,7 +184,7 @@ export function Configuraciones() {
   const handleResetByGrupo = async () => {
     if (!resetGrupo) return
     try {
-      const count = await resetStudentsByGrupo(resetGrupo)
+      const count = await resetStudentsByGrupo(resetGrupo, user.rol)
       alert(`${count} estudiantes eliminados del grupo ${resetGrupo}`)
       setResetGrupo("")
     } catch {
@@ -193,7 +194,7 @@ export function Configuraciones() {
 
   const handleResetAll = async () => {
     try {
-      const count = await resetAllStudents()
+      const count = await resetAllStudents(user.rol)
       alert(`${count} estudiantes eliminados en total`)
     } catch {
       alert("Error al resetear estudiantes")
@@ -204,7 +205,7 @@ export function Configuraciones() {
     if (!deleteSearchTerm.trim()) { setDeleteSearchResults([]); return }
     setIsSearchingToDelete(true)
     try {
-      const results = await searchStudentByName(deleteSearchTerm)
+      const results = await searchStudentByName(deleteSearchTerm, user.rol)
       setDeleteSearchResults(results)
     } catch {
       alert("Error al buscar estudiante")
@@ -216,7 +217,7 @@ export function Configuraciones() {
   const handleDeleteStudent = async (documento: string, nombre: string) => {
     if (!confirm(`¿Estás seguro de eliminar al estudiante ${nombre} (${documento})?`)) return
     try {
-      const success = await deleteStudentByDocumento(documento)
+      const success = await deleteStudentByDocumento(documento, user.rol)
       if (success) {
         alert(`Estudiante ${nombre} eliminado exitosamente`)
         setDeleteSearchTerm("")

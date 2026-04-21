@@ -25,12 +25,17 @@ import {
 } from "recharts"
 import { TrendingUp, Users, Award, CheckCircle, BarChart3 } from "lucide-react"
 
+import type { UserData } from "@/lib/auth"
+
 interface SurveyStatisticsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   surveyId: string
   surveyTitle: string
+  user: UserData
 }
+
+// ... ( keep SCALE_VALUES and COLORS )
 
 const SCALE_VALUES: Record<string, number> = {
   excelente: 5,
@@ -42,7 +47,7 @@ const SCALE_VALUES: Record<string, number> = {
 
 const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6"]
 
-export function SurveyStatisticsDialog({ open, onOpenChange, surveyId, surveyTitle }: SurveyStatisticsDialogProps) {
+export function SurveyStatisticsDialog({ open, onOpenChange, surveyId, surveyTitle, user }: SurveyStatisticsDialogProps) {
   const [responses, setResponses] = useState<any[]>([])
   const [survey, setSurvey] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -56,7 +61,7 @@ export function SurveyStatisticsDialog({ open, onOpenChange, surveyId, surveyTit
   const loadData = async () => {
     setLoading(true)
     try {
-      const data = await getSurveyResponses(surveyId)
+      const data = await getSurveyResponses(surveyId, user.rol)
       setResponses(Array.isArray(data.respuestas) ? data.respuestas : [])
       setSurvey(data.encuesta || null)
     } catch (error) {

@@ -1,7 +1,8 @@
 import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, onSnapshot } from "firebase/firestore"
-import { db } from "./firebase"
+import { db, getRoleCollectionName } from "./firebase"
 
 export interface SurveyQuestion {
+// ... (keep existing SurveyQuestion interface)
   id: string
   texto: string
   tipo: "opcion_multiple" | "texto_corto" | "texto_largo" | "escala" | "checkbox"
@@ -64,11 +65,11 @@ function deepClean(obj: any): any {
   return obj === "" ? undefined : obj
 }
 
-export async function createSurvey(surveyData: SurveyData) {
+export async function createSurvey(surveyData: SurveyData, role: string) {
   try {
     const cleanedData = deepClean(surveyData)
 
-    const surveysRef = collection(db, "encuestas")
+    const surveysRef = collection(db, getRoleCollectionName("encuestas", role))
     const docRef = await addDoc(surveysRef, cleanedData)
     console.log("[v0] Encuesta creada con ID:", docRef.id)
     return docRef.id
@@ -78,7 +79,7 @@ export async function createSurvey(surveyData: SurveyData) {
   }
 }
 
-export async function updateSurvey(surveyId: string, surveyData: Partial<SurveyData>) {
+export async function updateSurvey(surveyId: string, surveyData: Partial<SurveyData>, role: string) {
   try {
     if (surveyData.asignacion) {
       surveyData.asignacion = {
@@ -103,7 +104,7 @@ export async function updateSurvey(surveyId: string, surveyData: Partial<SurveyD
       }
     }
 
-    const surveyRef = doc(db, "encuestas", surveyId)
+    const surveyRef = doc(db, getRoleCollectionName("encuestas", role), surveyId)
     await updateDoc(surveyRef, cleanedData)
     console.log("[v0] Encuesta actualizada:", surveyId)
   } catch (error) {
@@ -112,21 +113,21 @@ export async function updateSurvey(surveyId: string, surveyData: Partial<SurveyD
   }
 }
 
-export async function deleteSurvey(surveyId: string) {
+export async function deleteSurvey(surveyId: string, role: string) {
   try {
     // Delete all responses associated with this survey
-    const respuestasRef = collection(db, "respuestas")
+    const respuestasRef = collection(db, getRoleCollectionName("respuestas", role))
     const q = query(respuestasRef, where("encuestaId", "==", surveyId))
     const respuestasSnapshot = await getDocs(q)
 
     await Promise.all(
       respuestasSnapshot.docs.map(async (respuestaDoc) => {
-        await deleteDoc(doc(db, "respuestas", respuestaDoc.id))
+        await deleteDoc(doc(db, getRoleCollectionName("respuestas", role), respuestaDoc.id))
       }),
     )
 
     // Delete the survey itself
-    const surveyRef = doc(db, "encuestas", surveyId)
+    const surveyRef = doc(db, getRoleCollectionName("encuestas", role), surveyId)
     await deleteDoc(surveyRef)
     console.log("[v0] Encuesta y respuestas eliminadas:", surveyId)
   } catch (error) {
@@ -135,13 +136,13 @@ export async function deleteSurvey(surveyId: string) {
   }
 }
 
-export async function getSurveys() {
+export async function getSurveys(role: string) {
   try {
-    const surveysRef = collection(db, "encuestas")
+    const surveysRef = collection(db, getRoleCollectionName("encuestas", role))
     const q = query(surveysRef, where("activa", "==", true))
     const querySnapshot = await getDocs(q)
 
-    const respuestasRef = collection(db, "respuestas")
+    const respuestasRef = collection(db, getRoleCollectionName("respuestas", role))
 
     // Get all surveys with their response counts
     const surveysWithCounts = await Promise.all(
@@ -164,13 +165,13 @@ export async function getSurveys() {
   }
 }
 
-export async function getAllSurveys() {
+export async function getAllSurveys(role: string) {
   try {
-    const surveysRef = collection(db, "encuestas")
+    const surveysRef = collection(db, getRoleCollectionName("encuestas", role))
     const querySnapshot = await getDocs(surveysRef)
 
-    const respuestasRef = collection(db, "respuestas")
-    const ponentesRef = collection(db, "ponentes")
+    const respuestasRef = collection(db, getRoleCollectionName("respuestas", role))
+    const ponentesRef = collection(db, getRoleCollectionName("ponentes", role))
 
     const surveysWithCounts = await Promise.all(
       querySnapshot.docs.map(async (surveyDoc) => {
@@ -203,22 +204,22 @@ export async function getAllSurveys() {
   }
 }
 
-export async function getAssignedSurveys(documento: string) {
+export async function getAssignedSurveys(documento: string, role: string) {
   try {
-    console.log("[v0] getAssignedSurveys - Buscando estudiante:", documento)
-    const estudiantesRef = collection(db, "estudiantes")
+    console.log("[v0] getAssignedSurveys - Buscando estudiante:", documento, "en rol:", role)
+    const estudiantesRef = collection(db, getRoleCollectionName("estudiantes", role))
     const qEstudiante = query(estudiantesRef, where("documento", "==", documento))
     const estudianteSnapshot = await getDocs(qEstudiante)
 
     if (estudianteSnapshot.empty) {
-      console.log("[v0] getAssignedSurveys - Estudiante no encontrado en colección estudiantes")
+      console.log("[v0] getAssignedSurveys - Estudiante no encontrado en colección estudiantes de rol:", role)
       return []
     }
 
     const inscripciones = estudianteSnapshot.docs.map((doc) => doc.data())
     console.log("[v0] getAssignedSurveys - Inscripciones encontradas:", inscripciones.length)
 
-    const surveysRef = collection(db, "encuestas")
+    const surveysRef = collection(db, getRoleCollectionName("encuestas", role))
     const qSurveys = query(surveysRef, where("activa", "==", true))
     const surveysSnapshot = await getDocs(qSurveys)
 
@@ -263,8 +264,8 @@ export async function getAssignedSurveys(documento: string) {
       }
     })
 
-    const respuestasRef = collection(db, "respuestas")
-    const ponentesRef = collection(db, "ponentes")
+    const respuestasRef = collection(db, getRoleCollectionName("respuestas", role))
+    const ponentesRef = collection(db, getRoleCollectionName("ponentes", role))
 
     const surveysWithStatus = await Promise.all(
       Array.from(assignedSurveysMap.values()).map(
@@ -282,9 +283,9 @@ export async function getAssignedSurveys(documento: string) {
 
           if (surveyData.ponenteId) {
             console.log("[v0] Buscando ponente con ID:", surveyData.ponenteId)
-            const ponenteDocRef = doc(db, "ponentes", surveyData.ponenteId)
+            const ponenteDocRef = doc(db, getRoleCollectionName("ponentes", role), surveyData.ponenteId)
             const ponenteDoc = await getDocs(
-              query(collection(db, "ponentes"), where("__name__", "==", surveyData.ponenteId)),
+              query(collection(db, getRoleCollectionName("ponentes", role)), where("__name__", "==", surveyData.ponenteId)),
             )
 
             if (!ponenteDoc.empty) {
@@ -320,9 +321,9 @@ export async function getAssignedSurveys(documento: string) {
   }
 }
 
-export async function submitSurveyResponse(surveyId: string, documento: string, responses: any) {
+export async function submitSurveyResponse(surveyId: string, documento: string, responses: any, role: string) {
   try {
-    const respuestasRef = collection(db, "respuestas")
+    const respuestasRef = collection(db, getRoleCollectionName("respuestas", role))
     await addDoc(respuestasRef, {
       encuestaId: surveyId,
       documento,
@@ -336,17 +337,17 @@ export async function submitSurveyResponse(surveyId: string, documento: string, 
   }
 }
 
-export async function getSurveyResponses(surveyId: string) {
+export async function getSurveyResponses(surveyId: string, role: string) {
   try {
-    const surveyRef = doc(db, "encuestas", surveyId)
-    const surveyDoc = await getDocs(query(collection(db, "encuestas"), where("__name__", "==", surveyId)))
+    const surveyRef = doc(db, getRoleCollectionName("encuestas", role), surveyId)
+    const surveyDoc = await getDocs(query(collection(db, getRoleCollectionName("encuestas", role)), where("__name__", "==", surveyId)))
     const encuesta = surveyDoc.empty ? null : { id: surveyDoc.docs[0].id, ...surveyDoc.docs[0].data() }
 
-    const respuestasRef = collection(db, "respuestas")
+    const respuestasRef = collection(db, getRoleCollectionName("respuestas", role))
     const q = query(respuestasRef, where("encuestaId", "==", surveyId))
     const respuestasSnapshot = await getDocs(q)
 
-    const estudiantesRef = collection(db, "estudiantes")
+    const estudiantesRef = collection(db, getRoleCollectionName("estudiantes", role))
 
     console.log("[v0] getSurveyResponses - Total respuestas:", respuestasSnapshot.size)
 
@@ -401,13 +402,13 @@ export async function getSurveyResponses(surveyId: string) {
   }
 }
 
-export async function getSurveyStats() {
+export async function getSurveyStats(role: string) {
   try {
     // 3 parallel fetches instead of N×M sequential queries
     const [surveysSnapshot, estudiantesSnapshot, respuestasSnapshot] = await Promise.all([
-      getDocs(collection(db, "encuestas")),
-      getDocs(collection(db, "estudiantes")),
-      getDocs(collection(db, "respuestas")),
+      getDocs(collection(db, getRoleCollectionName("encuestas", role))),
+      getDocs(collection(db, getRoleCollectionName("estudiantes", role))),
+      getDocs(collection(db, getRoleCollectionName("respuestas", role))),
     ])
 
     const estudiantes = estudiantesSnapshot.docs.map((d) => ({ id: d.id, ...d.data() as any }))
@@ -447,13 +448,13 @@ export async function getSurveyStats() {
   }
 }
 
-export function subscribeToSurveys(callback: (surveys: any[]) => void) {
+export function subscribeToSurveys(callback: (surveys: any[]) => void, role: string) {
   try {
-    const surveysRef = collection(db, "encuestas")
+    const surveysRef = collection(db, getRoleCollectionName("encuestas", role))
     const q = query(surveysRef, where("activa", "==", true))
 
     const unsubscribe = onSnapshot(q, async (querySnapshot) => {
-      const respuestasRef = collection(db, "respuestas")
+      const respuestasRef = collection(db, getRoleCollectionName("respuestas", role))
 
       const surveysWithCounts = await Promise.all(
         querySnapshot.docs.map(async (surveyDoc) => {
@@ -478,13 +479,13 @@ export function subscribeToSurveys(callback: (surveys: any[]) => void) {
   }
 }
 
-export function subscribeToAllSurveys(callback: (surveys: any[]) => void) {
+export function subscribeToAllSurveys(callback: (surveys: any[]) => void, role: string) {
   try {
-    const surveysRef = collection(db, "encuestas")
+    const surveysRef = collection(db, getRoleCollectionName("encuestas", role))
 
     const unsubscribe = onSnapshot(surveysRef, async (querySnapshot) => {
-      const respuestasRef = collection(db, "respuestas")
-      const ponentesRef = collection(db, "ponentes")
+      const respuestasRef = collection(db, getRoleCollectionName("respuestas", role))
+      const ponentesRef = collection(db, getRoleCollectionName("ponentes", role))
 
       const surveysWithCounts = await Promise.all(
         querySnapshot.docs.map(async (surveyDoc) => {

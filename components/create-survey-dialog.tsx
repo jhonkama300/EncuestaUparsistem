@@ -16,14 +16,17 @@ import { SurveyTemplateManager } from "./survey-template-manager"
 import { getTemplates } from "@/lib/survey-templates"
 import { dateInputToLocalISO, localISOToDateInput } from "@/lib/date-utils"
 
+import type { UserData } from "@/lib/auth"
+
 interface CreateSurveyDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
   editingSurvey?: any
+  user: UserData
 }
 
-export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurvey }: CreateSurveyDialogProps) {
+export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurvey, user }: CreateSurveyDialogProps) {
   const [titulo, setTitulo] = useState("")
   const [descripcion, setDescripcion] = useState("")
   const [preguntas, setPreguntas] = useState<SurveyQuestion[]>([
@@ -104,7 +107,7 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
   }, [editingSurvey, open])
 
   const handleSelectTemplate = async (templateId: string) => {
-    const templates = await getTemplates()
+    const templates = await getTemplates(user.rol)
     const template = templates.find((t: any) => t.id === templateId) as any
 
     if (template) {
@@ -163,9 +166,9 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
       }
 
       if (editingSurvey && editingSurvey.id) {
-        await updateSurvey(editingSurvey.id, surveyData)
+        await updateSurvey(editingSurvey.id, surveyData, user.rol)
       } else {
-        await createSurvey(surveyData)
+        await createSurvey(surveyData, user.rol)
       }
 
       onSuccess()
@@ -252,7 +255,7 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
                         </p>
                       </div>
                     </div>
-                    <SurveyTemplateManager onSelectTemplate={handleSelectTemplate} />
+                    <SurveyTemplateManager onSelectTemplate={handleSelectTemplate} user={user} />
                   </div>
                 </TabsContent>
 
@@ -392,6 +395,7 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
           descripcion,
           preguntas,
         }}
+        user={user}
       />
     </>
   )

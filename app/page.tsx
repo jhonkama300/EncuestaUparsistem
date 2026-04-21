@@ -101,7 +101,7 @@ export default function Home() {
       ) : userData && userData.rol === "estudiante" ? (
         <StudentView user={user} userData={userData} onLogout={handleLogoutConfirm} />
       ) : (
-        <MainView user={user} userData={userData} onLogout={handleLogoutConfirm} />
+        <MainView user={user!} userData={userData!} onLogout={handleLogoutConfirm} />
       )}
 
       <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>

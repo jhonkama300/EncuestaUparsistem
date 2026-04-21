@@ -15,14 +15,16 @@ import {
   createNewGroup,
 } from "@/lib/students"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import type { UserData } from "@/lib/auth"
 
 interface AssignStudentsToGroupDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
+  user: UserData
 }
 
-export function AssignStudentsToGroupDialog({ open, onOpenChange, onSuccess }: AssignStudentsToGroupDialogProps) {
+export function AssignStudentsToGroupDialog({ open, onOpenChange, onSuccess, user }: AssignStudentsToGroupDialogProps) {
   const [mode, setMode] = useState<"existing" | "new">("existing")
   const [grupoSeleccionado, setGrupoSeleccionado] = useState("")
   const [nuevoGrupoNombre, setNuevoGrupoNombre] = useState("")
@@ -47,14 +49,14 @@ export function AssignStudentsToGroupDialog({ open, onOpenChange, onSuccess }: A
       loadUniqueValues()
       loadAllStudents()
     }
-  }, [open])
+  }, [open, user.rol])
 
   useEffect(() => {
     applyFilters()
-  }, [filterGrupo, filterPrograma, searchTerm])
+  }, [filterGrupo, filterPrograma, searchTerm, user.rol])
 
   const loadUniqueValues = async () => {
-    const values = await getUniqueStudentValues()
+    const values = await getUniqueStudentValues(user.rol)
     setUniqueValues({
       grupos: values.grupos || [],
       programas: values.programas || [],
@@ -62,7 +64,7 @@ export function AssignStudentsToGroupDialog({ open, onOpenChange, onSuccess }: A
   }
 
   const loadAllStudents = async () => {
-    const students = await getStudentsByFilters({})
+    const students = await getStudentsByFilters({}, user.rol)
     setFilteredStudents(students)
   }
 
@@ -71,7 +73,7 @@ export function AssignStudentsToGroupDialog({ open, onOpenChange, onSuccess }: A
     if (filterGrupo && filterGrupo !== "__all__") filters.grupo = filterGrupo
     if (filterPrograma && filterPrograma !== "__all__") filters.programa = filterPrograma
 
-    let students = await getStudentsByFilters(filters)
+    let students = await getStudentsByFilters(filters, user.rol)
 
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase().trim()
@@ -109,7 +111,7 @@ export function AssignStudentsToGroupDialog({ open, onOpenChange, onSuccess }: A
 
       if (selectedStudents.length > 0) {
         const documentos = selectedStudents.map((s) => s.documento)
-        const res = await assignMultipleStudentsToGroup(documentos, grupoDestino)
+        const res = await assignMultipleStudentsToGroup(documentos, grupoDestino, user.rol)
         setResult(res)
       } else {
         if (mode === "new") {
@@ -117,11 +119,11 @@ export function AssignStudentsToGroupDialog({ open, onOpenChange, onSuccess }: A
           if (filterGrupo && filterGrupo !== "__all__") filters.grupo = filterGrupo
           if (filterPrograma && filterPrograma !== "__all__") filters.programa = filterPrograma
 
-          const count = await createNewGroup(grupoDestino, filters)
+          const count = await createNewGroup(grupoDestino, user.rol, filters)
           setResult({ success: count, errors: [] })
         } else {
           const documentos = filteredStudents.map((s) => s.documento)
-          const res = await assignMultipleStudentsToGroup(documentos, grupoDestino)
+          const res = await assignMultipleStudentsToGroup(documentos, grupoDestino, user.rol)
           setResult(res)
         }
       }

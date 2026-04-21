@@ -7,14 +7,17 @@ import { Button } from "@/components/ui/button"
 import { getSurveyResponses } from "@/lib/surveys"
 import { Users, Calendar, CheckCircle2, ChevronDown, ChevronUp, User } from "lucide-react"
 
+import type { UserData } from "@/lib/auth"
+
 interface SurveyResultsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   surveyId: string
   surveyTitle: string
+  user: UserData
 }
 
-export function SurveyResultsDialog({ open, onOpenChange, surveyId, surveyTitle }: SurveyResultsDialogProps) {
+export function SurveyResultsDialog({ open, onOpenChange, surveyId, surveyTitle, user }: SurveyResultsDialogProps) {
   const [responses, setResponses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedResponses, setExpandedResponses] = useState<Set<string>>(new Set())
@@ -29,7 +32,7 @@ export function SurveyResultsDialog({ open, onOpenChange, surveyId, surveyTitle 
   const loadResponses = async () => {
     setLoading(true)
     try {
-      const data = await getSurveyResponses(surveyId)
+      const data = await getSurveyResponses(surveyId, user.rol)
       console.log("[v0] Respuestas cargadas en el componente:", data)
       setResponses(data.respuestas || [])
       setSurveyQuestions((data.encuesta as any)?.preguntas || [])

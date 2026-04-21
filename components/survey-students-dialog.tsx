@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { CheckCircle2, XCircle, Search, Users, ChevronDown, ChevronUp, Calendar, User, X } from "lucide-react"
 import { collection, getDocs, query, where } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { db, getRoleCollectionName } from "@/lib/firebase"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
+import type { UserData } from "@/lib/auth"
 
 interface SurveyStudentsDialogProps {
   open: boolean
@@ -17,9 +18,11 @@ interface SurveyStudentsDialogProps {
   surveyId: string
   surveyTitle: string
   surveyData: any
+  user: UserData
 }
 
 interface StudentStatus {
+// ... ( keep StudentStatus interface )
   documento: string
   nombre: string
   programa: string
@@ -37,6 +40,7 @@ export function SurveyStudentsDialog({
   surveyId,
   surveyTitle,
   surveyData,
+  user,
 }: SurveyStudentsDialogProps) {
   const [students, setStudents] = useState<StudentStatus[]>([])
   const [loading, setLoading] = useState(true)
@@ -50,7 +54,7 @@ export function SurveyStudentsDialog({
       loadStudentStatus()
       loadSurveyQuestions()
     }
-  }, [open, surveyId])
+  }, [open, surveyId, user.rol])
 
   const loadSurveyQuestions = () => {
     try {
@@ -65,12 +69,12 @@ export function SurveyStudentsDialog({
   const loadStudentStatus = async () => {
     setLoading(true)
     try {
-      console.log("[v0] Cargando estado de estudiantes para encuesta:", surveyId)
+      console.log("[v0] Cargando estado de estudiantes para encuesta:", surveyId, "en rol:", user.rol)
 
-      const estudiantesRef = collection(db, "estudiantes")
+      const estudiantesRef = collection(db, getRoleCollectionName("estudiantes", user.rol))
       const estudiantesSnapshot = await getDocs(estudiantesRef)
 
-      const respuestasRef = collection(db, "respuestas")
+      const respuestasRef = collection(db, getRoleCollectionName("respuestas", user.rol))
       const qRespuestas = query(respuestasRef, where("encuestaId", "==", surveyId))
       const respuestasSnapshot = await getDocs(qRespuestas)
 

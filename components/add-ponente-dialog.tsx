@@ -11,37 +11,23 @@ import { addPonente, updatePonente } from "@/lib/ponentes"
 import type { PonenteData } from "@/lib/ponentes"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
+import type { UserData } from "@/lib/auth"
+
+const IMAGENES_PONENTES = [
+  { value: "default", label: "Avatar por defecto", url: "/placeholder.svg" },
+  { value: "ponente1", label: "Ponente 1", url: "/ponente1.svg" },
+  { value: "ponente2", label: "Ponente 2", url: "/ponente2.svg" },
+  { value: "ponente3", label: "Ponente 3", url: "/ponente3.svg" },
+]
+
 interface AddPonenteDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
   editMode?: boolean
   ponenteData?: PonenteData
+  user: UserData
 }
-
-const IMAGENES_PONENTES = [
-  {
-    value: "ponente-1",
-    label: "Ponente 1 (Hombre formal)",
-    url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%234f46e5' width='200' height='200'/%3E%3Ccircle cx='100' cy='80' r='40' fill='%23fff'/%3E%3Cpath d='M60 160c0-22 18-40 40-40s40 18 40 40v40H60z' fill='%23fff'/%3E%3C/svg%3E",
-  },
-  {
-    value: "ponente-2",
-    label: "Ponente 2 (Mujer formal)",
-    url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%23ec4899' width='200' height='200'/%3E%3Ccircle cx='100' cy='80' r='40' fill='%23fff'/%3E%3Cpath d='M60 160c0-22 18-40 40-40s40 18 40 40v40H60z' fill='%23fff'/%3E%3C/svg%3E",
-  },
-  {
-    value: "ponente-3",
-    label: "Ponente 3 (Hombre casual)",
-    url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%2310b981' width='200' height='200'/%3E%3Ccircle cx='100' cy='80' r='40' fill='%23fff'/%3E%3Cpath d='M60 160c0-22 18-40 40-40s40 18 40 40v40H60z' fill='%23fff'/%3E%3C/svg%3E",
-  },
-  {
-    value: "ponente-4",
-    label: "Ponente 4 (Mujer casual)",
-    url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%23f59e0b' width='200' height='200'/%3E%3Ccircle cx='100' cy='80' r='40' fill='%23fff'/%3E%3Cpath d='M60 160c0-22 18-40 40-40s40 18 40 40v40H60z' fill='%23fff'/%3E%3C/svg%3E",
-  },
-  { value: "default", label: "Sin imagen", url: "" },
-]
 
 export function AddPonenteDialog({
   open,
@@ -49,7 +35,9 @@ export function AddPonenteDialog({
   onSuccess,
   editMode = false,
   ponenteData,
+  user,
 }: AddPonenteDialogProps) {
+
   const [loading, setLoading] = useState(false)
   const [customImage, setCustomImage] = useState<string>("")
   const [formData, setFormData] = useState({
@@ -148,7 +136,7 @@ export function AddPonenteDialog({
           descripcion: formData.descripcion,
           imagen: imagenUrl,
         }
-        await updatePonente(ponenteData.id, updateData)
+        await updatePonente(ponenteData.id, updateData, user.rol)
         alert("Ponente actualizado exitosamente")
       } else {
         const newPonenteData: PonenteData = {
@@ -160,7 +148,7 @@ export function AddPonenteDialog({
           fechaCreacion: new Date().toISOString(),
           activo: true,
         }
-        await addPonente(newPonenteData)
+        await addPonente(newPonenteData, user.rol)
         alert("Ponente agregado exitosamente")
       }
 
@@ -249,7 +237,7 @@ export function AddPonenteDialog({
                   <SelectValue placeholder="Seleccionar imagen" />
                 </SelectTrigger>
                 <SelectContent>
-                  {IMAGENES_PONENTES.map((img) => (
+                  {IMAGENES_PONENTES.map((img: { value: string; label: string; url: string }) => (
                     <SelectItem key={img.value} value={img.value}>
                       {img.label}
                     </SelectItem>

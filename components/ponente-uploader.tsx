@@ -8,7 +8,7 @@ import { UserPlus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Star } fro
 import { getPonentes, deletePonente } from "@/lib/ponentes"
 import { AddPonenteDialog } from "./add-ponente-dialog"
 import { collection, getDocs } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { db, getRoleCollectionName } from "@/lib/firebase"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,7 +23,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const ITEMS_PER_PAGE = 10
 
-export function PonenteUploader() {
+import type { UserData } from "@/lib/auth"
+
+export function PonenteUploader({ user }: { user: UserData }) {
   const [ponentes, setPonentes] = useState<any[]>([])
   const [filteredPonentes, setFilteredPonentes] = useState<any[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -37,7 +39,7 @@ export function PonenteUploader() {
 
   useEffect(() => {
     loadPonentes()
-  }, [])
+  }, [user.rol])
 
   useEffect(() => {
     applyFilters()
@@ -50,7 +52,7 @@ export function PonenteUploader() {
   }, [ponentes])
 
   const loadPonentes = async () => {
-    const data = await getPonentes()
+    const data = await getPonentes(user.rol)
     setPonentes(data)
   }
 
@@ -66,8 +68,8 @@ export function PonenteUploader() {
 
       // 2 queries total instead of N×M
       const [encuestasSnap, respuestasSnap] = await Promise.all([
-        getDocs(collection(db, "encuestas")),
-        getDocs(collection(db, "respuestas")),
+        getDocs(collection(db, getRoleCollectionName("encuestas", user.rol))),
+        getDocs(collection(db, getRoleCollectionName("respuestas", user.rol))),
       ])
 
       // Map encuestaId → ponenteId
@@ -130,7 +132,7 @@ export function PonenteUploader() {
     if (!ponenteToDelete) return
 
     try {
-      await deletePonente(ponenteToDelete.id)
+      await deletePonente(ponenteToDelete.id, user.rol)
       alert("Ponente eliminado exitosamente")
       loadPonentes()
     } catch (error) {
@@ -210,6 +212,7 @@ export function PonenteUploader() {
           onSuccess={loadPonentes}
           editMode={editMode}
           ponenteData={selectedPonente}
+          user={user}
         />
 
         <Card className="border-emerald-200 bg-white/80 backdrop-blur-sm">

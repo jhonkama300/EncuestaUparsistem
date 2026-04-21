@@ -1,9 +1,10 @@
 import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, onSnapshot } from "firebase/firestore"
-import { db } from "./firebase"
+import { db, getRoleCollectionName } from "./firebase"
 
 export interface PonenteData {
+  id?: string
   nombre: string
-  numero?: string // Added numero field
+  numero?: string
   descripcion: string
   cargo?: string
   institucion?: string
@@ -12,14 +13,14 @@ export interface PonenteData {
   grupo?: string
   periodo?: string
   nivel?: string
-  imagen?: string // Added imagen field
+  imagen?: string
   fechaCreacion: string
   activo: boolean
 }
 
-export async function getStudentFilters() {
+export async function getStudentFilters(role: string) {
   try {
-    const estudiantesRef = collection(db, "estudiantes")
+    const estudiantesRef = collection(db, getRoleCollectionName("estudiantes", role))
     const snapshot = await getDocs(estudiantesRef)
 
     const jornadas = new Set<string>()
@@ -56,10 +57,10 @@ export async function getStudentFilters() {
   }
 }
 
-export async function addPonente(ponenteData: PonenteData): Promise<string> {
+export async function addPonente(ponenteData: PonenteData, role: string): Promise<string> {
   try {
-    console.log("[v0] Agregando ponente:", ponenteData.nombre)
-    const ponentesRef = collection(db, "ponentes")
+    console.log("[v0] Agregando ponente:", ponenteData.nombre, "para rol:", role)
+    const ponentesRef = collection(db, getRoleCollectionName("ponentes", role))
     const docRef = await addDoc(ponentesRef, {
       ...ponenteData,
       fechaCreacion: new Date().toISOString(),
@@ -73,9 +74,9 @@ export async function addPonente(ponenteData: PonenteData): Promise<string> {
   }
 }
 
-export async function getPonentes(): Promise<any[]> {
+export async function getPonentes(role: string): Promise<any[]> {
   try {
-    const ponentesRef = collection(db, "ponentes")
+    const ponentesRef = collection(db, getRoleCollectionName("ponentes", role))
     const q = query(ponentesRef, where("activo", "==", true))
     const snapshot = await getDocs(q)
 
@@ -95,9 +96,9 @@ export async function getPonentesByFilters(filters: {
   grupo?: string
   periodo?: string
   nivel?: string
-}): Promise<any[]> {
+}, role: string): Promise<any[]> {
   try {
-    const ponentesRef = collection(db, "ponentes")
+    const ponentesRef = collection(db, getRoleCollectionName("ponentes", role))
     const q = query(ponentesRef, where("activo", "==", true))
 
     const snapshot = await getDocs(q)
@@ -108,7 +109,7 @@ export async function getPonentesByFilters(filters: {
         id: doc.id,
         ...doc.data(),
       }))
-      .filter((ponente) => {
+      .filter((ponente: any) => {
         if (filters.jornada && ponente.jornada && ponente.jornada !== filters.jornada) return false
         if (filters.programa && ponente.programa && ponente.programa !== filters.programa) return false
         if (filters.grupo && ponente.grupo && ponente.grupo !== filters.grupo) return false
@@ -124,10 +125,10 @@ export async function getPonentesByFilters(filters: {
   }
 }
 
-export async function deletePonente(ponenteId: string): Promise<void> {
+export async function deletePonente(ponenteId: string, role: string): Promise<void> {
   try {
-    console.log("[v0] Eliminando ponente de la BD:", ponenteId)
-    const ponenteRef = doc(db, "ponentes", ponenteId)
+    console.log("[v0] Eliminando ponente de la BD:", ponenteId, "en rol:", role)
+    const ponenteRef = doc(db, getRoleCollectionName("ponentes", role), ponenteId)
     await deleteDoc(ponenteRef)
     console.log("[v0] Ponente eliminado completamente:", ponenteId)
   } catch (error) {
@@ -136,10 +137,10 @@ export async function deletePonente(ponenteId: string): Promise<void> {
   }
 }
 
-export async function updatePonente(ponenteId: string, ponenteData: Partial<PonenteData>): Promise<void> {
+export async function updatePonente(ponenteId: string, ponenteData: Partial<PonenteData>, role: string): Promise<void> {
   try {
-    console.log("[v0] Actualizando ponente:", ponenteId)
-    const ponenteRef = doc(db, "ponentes", ponenteId)
+    console.log("[v0] Actualizando ponente:", ponenteId, "en rol:", role)
+    const ponenteRef = doc(db, getRoleCollectionName("ponentes", role), ponenteId)
     await updateDoc(ponenteRef, {
       ...ponenteData,
       fechaActualizacion: new Date().toISOString(),
@@ -151,9 +152,9 @@ export async function updatePonente(ponenteId: string, ponenteData: Partial<Pone
   }
 }
 
-export function subscribeToPonentes(callback: (ponentes: any[]) => void) {
+export function subscribeToPonentes(callback: (ponentes: any[]) => void, role: string) {
   try {
-    const ponentesRef = collection(db, "ponentes")
+    const ponentesRef = collection(db, getRoleCollectionName("ponentes", role))
     const q = query(ponentesRef, where("activo", "==", true))
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -172,12 +173,12 @@ export function subscribeToPonentes(callback: (ponentes: any[]) => void) {
   }
 }
 
-export async function calculatePonenteAverageRating(ponenteId: string): Promise<number> {
+export async function calculatePonenteAverageRating(ponenteId: string, role: string): Promise<number> {
   try {
-    console.log("[v0] Calculando promedio de calificaciones para ponente:", ponenteId)
+    console.log("[v0] Calculando promedio de calificaciones para ponente:", ponenteId, "en rol:", role)
 
     // Obtener todas las encuestas del ponente
-    const surveysRef = collection(db, "encuestas")
+    const surveysRef = collection(db, getRoleCollectionName("encuestas", role))
     const qSurveys = query(surveysRef, where("ponenteId", "==", ponenteId))
     const surveysSnapshot = await getDocs(qSurveys)
 
@@ -190,7 +191,7 @@ export async function calculatePonenteAverageRating(ponenteId: string): Promise<
     console.log("[v0] Encuestas encontradas:", surveyIds.length)
 
     // Obtener todas las respuestas de esas encuestas
-    const respuestasRef = collection(db, "respuestas")
+    const respuestasRef = collection(db, getRoleCollectionName("respuestas", role))
     let totalSum = 0
     let totalCount = 0
 

@@ -294,12 +294,12 @@ export function SurveyManager({ user }: { user: UserData }) {
   }
 
   const PaginationControls = () => (
-    <div className="flex items-center justify-between py-4 border-t border-emerald-200">
+    <div className="flex items-center justify-between py-4 border-t border-border">
       <div className="flex items-center gap-4">
         <div className="text-sm text-gray-600">
           Mostrando {startIndex + 1} - {Math.min(endIndex, filteredSurveys.length)} de {filteredSurveys.length}{" "}
           encuestas
-          <span className="ml-2 text-gray-500">
+          <span className="ml-2 text-gray-600">
             (Página {currentPage} de {totalPages})
           </span>
         </div>
@@ -340,14 +340,14 @@ export function SurveyManager({ user }: { user: UserData }) {
                   variant={currentPage === page ? "default" : "outline"}
                   size="sm"
                   onClick={() => goToPage(page)}
-                  className={currentPage === page ? "bg-emerald-600 hover:bg-emerald-700" : ""}
+                  className={currentPage === page ? "bg-primary hover:bg-primary/90" : ""}
                 >
                   {page}
                 </Button>
               )
             } else if (page === currentPage - 2 || page === currentPage + 2) {
               return (
-                <span key={page} className="px-2 text-gray-400">
+                <span key={page} className="px-2 text-gray-500">
                   ...
                 </span>
               )
@@ -374,7 +374,7 @@ export function SurveyManager({ user }: { user: UserData }) {
     <>
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-emerald-800">Gestión de Encuestas</h2>
+          <h2 className="text-2xl font-bold text-foreground">Gestión de Encuestas</h2>
           <p className="text-gray-600 mt-1">Crea y administra encuestas para tus estudiantes</p>
         </div>
         <Button
@@ -382,7 +382,7 @@ export function SurveyManager({ user }: { user: UserData }) {
             setEditingSurvey(null)
             setShowCreateDialog(true)
           }}
-          className="gap-2 bg-emerald-600 hover:bg-emerald-700"
+          className="gap-2 bg-primary hover:bg-primary/90"
           size="lg"
         >
           <Plus className="h-5 w-5" />
@@ -391,43 +391,43 @@ export function SurveyManager({ user }: { user: UserData }) {
       </div>
 
       <div className="mb-6 grid gap-4 md:grid-cols-3">
-        <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-white">
+        <Card className="border-primary/20 bg-gradient-to-br bg-primary/10 to-white">
           <CardContent className="flex items-center gap-3 py-4 px-5">
-            <div className="h-9 w-9 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-              <FileText className="h-4 w-4 text-emerald-600" />
+            <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <FileText className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <p className="text-xs text-gray-500 font-medium">Encuestas Activas</p>
-              <p className="text-2xl font-bold text-emerald-700 leading-tight">{stats.total}</p>
-              <p className="text-xs text-gray-400">En curso</p>
+              <p className="text-xs text-gray-600 font-medium">Encuestas Activas</p>
+              <p className="text-2xl font-bold text-primary/70 leading-tight">{stats.total}</p>
+              <p className="text-xs text-gray-500">En curso</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-emerald-200 bg-gradient-to-br from-green-50 to-white">
+        <Card className="border-primary/20 bg-gradient-to-br bg-primary/10 to-white">
           <CardContent className="flex items-center gap-3 py-4 px-5">
-            <div className="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-              <Users className="h-4 w-4 text-green-600" />
+            <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+              <Users className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <p className="text-xs text-gray-500 font-medium">Respuestas Totales</p>
-              <p className="text-2xl font-bold text-green-700 leading-tight">
-                {stats.respuestas} <span className="text-base font-medium text-gray-400">/ {stats.estudiantesAsignados}</span>
+              <p className="text-xs text-gray-600 font-medium">Respuestas Totales</p>
+              <p className="text-2xl font-bold text-primary/80 leading-tight">
+                {stats.respuestas} <span className="text-base font-medium text-gray-500">/ {stats.estudiantesAsignados}</span>
               </p>
-              <p className="text-xs text-gray-400">Respondidas / Esperadas</p>
+              <p className="text-xs text-gray-500">Respondidas / Esperadas</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-emerald-200 bg-gradient-to-br from-teal-50 to-white">
+        <Card className="border-primary/20 bg-gradient-to-br from-teal-50 to-white">
           <CardContent className="flex items-center gap-3 py-4 px-5">
             <div className="h-9 w-9 rounded-full bg-teal-100 flex items-center justify-center shrink-0">
               <TrendingUp className="h-4 w-4 text-teal-600" />
             </div>
             <div>
-              <p className="text-xs text-gray-500 font-medium">Tasa de Respuesta</p>
+              <p className="text-xs text-gray-600 font-medium">Tasa de Respuesta</p>
               <p className="text-2xl font-bold text-teal-700 leading-tight">{stats.tasa}%</p>
-              <p className="text-xs text-gray-400">De respuestas esperadas</p>
+              <p className="text-xs text-gray-500">De respuestas esperadas</p>
             </div>
           </CardContent>
         </Card>
@@ -437,11 +437,11 @@ export function SurveyManager({ user }: { user: UserData }) {
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-800">Encuestas Recientes</h3>
         </div>
-        <Card className="mb-4 border-emerald-200 bg-emerald-50/50">
+        <Card className="mb-4 border-primary/20 bg-primary/10/50">
           <CardContent className="py-4 px-5">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Buscar por nombre</Label>
+                <Label className="text-sm font-medium text-gray-800">Buscar por nombre</Label>
                 <Input
                   type="text"
                   placeholder="Nombre de la encuesta..."
@@ -452,7 +452,7 @@ export function SurveyManager({ user }: { user: UserData }) {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Tipo</Label>
+                <Label className="text-sm font-medium text-gray-800">Tipo</Label>
                 <Select value={filterTipo} onValueChange={setFilterTipo}>
                   <SelectTrigger className="h-10">
                     <SelectValue placeholder="Todos" />
@@ -466,7 +466,7 @@ export function SurveyManager({ user }: { user: UserData }) {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Ponente</Label>
+                <Label className="text-sm font-medium text-gray-800">Ponente</Label>
                 <Select value={filterPonente} onValueChange={setFilterPonente}>
                   <SelectTrigger className="h-10">
                     <SelectValue placeholder="Todos" />
@@ -483,7 +483,7 @@ export function SurveyManager({ user }: { user: UserData }) {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Programa</Label>
+                <Label className="text-sm font-medium text-gray-800">Programa</Label>
                 <Select value={filterPrograma} onValueChange={setFilterPrograma}>
                   <SelectTrigger className="h-10">
                     <SelectValue placeholder="Todos" />
@@ -500,7 +500,7 @@ export function SurveyManager({ user }: { user: UserData }) {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Grupo</Label>
+                <Label className="text-sm font-medium text-gray-800">Grupo</Label>
                 <Select value={filterGrupo} onValueChange={setFilterGrupo}>
                   <SelectTrigger className="h-10">
                     <SelectValue placeholder="Todos" />
@@ -517,7 +517,7 @@ export function SurveyManager({ user }: { user: UserData }) {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Periodo</Label>
+                <Label className="text-sm font-medium text-gray-800">Periodo</Label>
                 <Select value={filterPeriodo} onValueChange={setFilterPeriodo}>
                   <SelectTrigger className="h-10">
                     <SelectValue placeholder="Todos" />
@@ -540,7 +540,7 @@ export function SurveyManager({ user }: { user: UserData }) {
               filterPrograma !== "all" ||
               filterGrupo !== "all" ||
               filterPeriodo !== "all") && (
-              <div className="mt-4 flex items-center justify-between pt-4 border-t border-emerald-200">
+              <div className="mt-4 flex items-center justify-between pt-4 border-t border-primary/20">
                 <p className="text-sm text-gray-600">
                   Mostrando {filteredSurveys.length} de {surveys.length} encuestas
                 </p>
@@ -555,7 +555,7 @@ export function SurveyManager({ user }: { user: UserData }) {
                     setFilterGrupo("all")
                     setFilterPeriodo("all")
                   }}
-                  className="text-emerald-700 hover:text-emerald-800 hover:bg-emerald-100"
+                  className="text-primary/70 hover:text-foreground hover:bg-primary/10"
                 >
                   Limpiar Filtros
                 </Button>
@@ -566,10 +566,10 @@ export function SurveyManager({ user }: { user: UserData }) {
 
         <div className="space-y-4">
           {filteredSurveys.length === 0 ? (
-            <Card className="border-dashed border-2 border-emerald-200">
+            <Card className="border-dashed border-2 border-primary/20">
               <CardContent className="py-16 text-center">
-                <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center">
-                  <FileText className="h-8 w-8 text-emerald-600" />
+                <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <FileText className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="mb-2 text-xl font-semibold text-gray-800">
                   {surveys.length === 0 ? "No hay encuestas creadas" : "No se encontraron encuestas"}
@@ -582,7 +582,7 @@ export function SurveyManager({ user }: { user: UserData }) {
                 {surveys.length === 0 && (
                   <Button
                     onClick={() => setShowCreateDialog(true)}
-                    className="gap-2 bg-emerald-600 hover:bg-emerald-700"
+className="gap-2 bg-primary hover:bg-primary/90"
                   >
                     <Plus className="h-4 w-4" />
                     Crear Primera Encuesta
@@ -597,22 +597,22 @@ export function SurveyManager({ user }: { user: UserData }) {
               {paginatedSurveys.map((survey) => (
                 <Card
                   key={survey.id}
-                  className={`border-emerald-200 hover:shadow-md transition-shadow ${!survey.activa ? "opacity-60" : ""}`}
+                  className={`border-primary/20 hover:shadow-md transition-shadow ${!survey.activa ? "opacity-60" : ""}`}
                 >
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3">
-                          <CardTitle className="text-emerald-800 text-xl">{survey.titulo}</CardTitle>
+                          <CardTitle className="text-foreground text-xl">{survey.titulo}</CardTitle>
                           {!survey.activa && (
-                            <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">Deshabilitada</span>
+                            <span className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded">Deshabilitada</span>
                           )}
                         </div>
                         <CardDescription className="mt-2">{survey.descripcion}</CardDescription>
 
                         {survey.ponenteNombre && (
                           <div className="mt-3 flex items-center gap-2">
-                            <div className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-md border border-emerald-200">
+                            <div className="flex items-center gap-1.5 text-sm font-medium text-primary/70 bg-primary/10 px-3 py-1.5 rounded-md border border-primary/20">
                               <Users className="h-4 w-4" />
                               <span>Ponente: {survey.ponenteNombre}</span>
                             </div>
@@ -622,13 +622,13 @@ export function SurveyManager({ user }: { user: UserData }) {
                         <div className="mt-3 flex flex-wrap gap-4 text-sm text-gray-600">
                           {survey.fechaEncuesta && (
                             <div className="flex items-center gap-1.5">
-                              <Calendar className="h-4 w-4 text-emerald-600" />
+                              <Calendar className="h-4 w-4 text-primary" />
                               <span>{formatDate(survey.fechaEncuesta)}</span>
                             </div>
                           )}
                           {(survey.horaInicio || survey.horaFin) && (
                             <div className="flex items-center gap-1.5">
-                              <Clock className="h-4 w-4 text-emerald-600" />
+                              <Clock className="h-4 w-4 text-primary" />
                               <span>
                                 {formatTime(survey.horaInicio)}
                                 {survey.horaInicio && survey.horaFin && " - "}
@@ -641,17 +641,17 @@ export function SurveyManager({ user }: { user: UserData }) {
                         {(survey.programa || survey.nivel || survey.periodo || survey.grupos || survey.auditorio) && (
                           <div className="mt-3 flex flex-wrap gap-2">
                             {survey.programa && (
-                              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                              <span className="text-xs text-accent-foreground bg-accent px-2 py-1 rounded">
                                 {survey.programa}
                               </span>
                             )}
                             {survey.nivel && (
-                              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                              <span className="text-xs text-accent-foreground bg-accent px-2 py-1 rounded">
                                 Nivel {survey.nivel}
                               </span>
                             )}
                             {survey.periodo && (
-                              <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">
+                              <span className="text-xs text-accent-foreground bg-accent px-2 py-1 rounded">
                                 {survey.periodo}
                               </span>
                             )}
@@ -682,7 +682,7 @@ export function SurveyManager({ user }: { user: UserData }) {
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded cursor-help">
+                                    <span className="text-xs bg-primary/20 text-primary/80 px-2 py-1 rounded cursor-help">
                                       {survey.auditorio}
                                     </span>
                                   </TooltipTrigger>
@@ -696,7 +696,7 @@ export function SurveyManager({ user }: { user: UserData }) {
                         )}
                       </div>
                       <div className="ml-4 text-right">
-                        <div className="text-2xl font-bold text-emerald-700">{survey.respuestas || 0}</div>
+                        <div className="text-2xl font-bold text-primary/70">{survey.respuestas || 0}</div>
                         <div className="text-xs text-gray-600">respuestas</div>
                       </div>
                     </div>
@@ -837,7 +837,7 @@ export function SurveyManager({ user }: { user: UserData }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleToggleSurveyConfirm} className="bg-emerald-600 hover:bg-emerald-700">
+            <AlertDialogAction onClick={handleToggleSurveyConfirm} className="bg-primary hover:bg-primary/90">
               {surveyToToggle?.activa ? "Deshabilitar" : "Habilitar"}
             </AlertDialogAction>
           </AlertDialogFooter>

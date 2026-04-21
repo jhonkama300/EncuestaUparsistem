@@ -21,11 +21,11 @@ export function MainView({ user, userData, onLogout }: MainViewProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className={`min-h-screen bg-background flex ${userData?.rol === "relaciones_corporativas" ? "theme-relaciones" : userData?.rol === "admin" ? "theme-admin" : ""}`}>
       {/* Header */}
       <header className="border-b bg-white/80 backdrop-blur-sm">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
-          <h1 className="text-2xl font-bold text-gray-800">Panel Principal</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Panel Principal</h1>
           <Button variant="outline" onClick={handleLogout} className="gap-2 bg-transparent">
             <LogOut className="h-4 w-4" />
             Cerrar Sesión
@@ -52,25 +52,25 @@ export function MainView({ user, userData, onLogout }: MainViewProps) {
             <CardContent>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-600">Número de Documento:</span>
+                  <span className="font-medium text-gray-700">Número de Documento:</span>
                   <span className="text-lg font-semibold text-gray-900">{userData?.documento || "N/A"}</span>
                 </div>
                 {userData?.email && (
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-600">Email:</span>
+                    <span className="font-medium text-gray-700">Email:</span>
                     <span className="text-gray-700">{userData.email}</span>
                   </div>
                 )}
                 {userData?.rol && (
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-600">Rol:</span>
+                    <span className="font-medium text-gray-700">Rol:</span>
                     <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700">
                       {userData.rol}
                     </span>
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-600">ID de Usuario:</span>
+                  <span className="font-medium text-gray-700">ID de Usuario:</span>
                   <span className="font-mono text-sm text-gray-700">{user.documento}</span>
                 </div>
               </div>
@@ -86,7 +86,7 @@ export function MainView({ user, userData, onLogout }: MainViewProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-gray-600">Tu sesión está activa y segura</p>
+              <p className="text-sm text-gray-700">Tu sesión está activa y segura</p>
             </CardContent>
           </Card>
 
@@ -97,7 +97,7 @@ export function MainView({ user, userData, onLogout }: MainViewProps) {
               <CardDescription>Funcionalidad disponible</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-gray-600">Contenido del módulo 1</p>
+              <p className="text-sm text-gray-700">Contenido del módulo 1</p>
             </CardContent>
           </Card>
 
@@ -107,7 +107,7 @@ export function MainView({ user, userData, onLogout }: MainViewProps) {
               <CardDescription>Funcionalidad disponible</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-gray-600">Contenido del módulo 2</p>
+              <p className="text-sm text-gray-700">Contenido del módulo 2</p>
             </CardContent>
           </Card>
         </div>

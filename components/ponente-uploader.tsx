@@ -191,15 +191,15 @@ export function PonenteUploader({ user }: { user: UserData }) {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-emerald-900">Gestión de Ponentes</h2>
-            <p className="text-sm text-emerald-700 mt-1">
+            <h2 className="text-2xl font-bold text-foreground">Gestión de Ponentes</h2>
+            <p className="text-sm text-muted-foreground mt-1">
               Total: {filteredPonentes.length} ponente{filteredPonentes.length !== 1 ? "s" : ""}
               {filteredPonentes.length !== ponentes.length && ` (de ${ponentes.length})`}
             </p>
           </div>
           <Button
             onClick={handleAdd}
-            className="gap-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700"
+            className="gap-2 bg-gradient-to-r bg-primary hover:bg-primary/90"
           >
             <UserPlus className="h-4 w-4" />
             Agregar Ponente
@@ -215,16 +215,16 @@ export function PonenteUploader({ user }: { user: UserData }) {
           user={user}
         />
 
-        <Card className="border-emerald-200 bg-white/80 backdrop-blur-sm">
-          <CardHeader className="border-b border-emerald-100 bg-gradient-to-r from-emerald-50 to-green-50">
-            <CardTitle className="text-emerald-900">Búsqueda de Ponentes</CardTitle>
-            <CardDescription className="text-emerald-700">Busca ponentes por nombre, número o cargo</CardDescription>
+        <Card className="border-primary/20 bg-white/80 backdrop-blur-sm">
+          <CardHeader className="border-b border-primary/10 bg-gradient-to-r from-primary/10 to-transparent">
+            <CardTitle className="text-foreground">Búsqueda de Ponentes</CardTitle>
+            <CardDescription className="text-muted-foreground">Busca ponentes por nombre, número o cargo</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">Buscar</label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                 <Input
                   placeholder="Nombre, número o cargo..."
                   value={searchTerm}
@@ -242,23 +242,23 @@ export function PonenteUploader({ user }: { user: UserData }) {
           </CardContent>
         </Card>
 
-        <Card className="border-emerald-200 bg-white/80 backdrop-blur-sm">
-          <CardHeader className="border-b border-emerald-100 bg-gradient-to-r from-emerald-50 to-green-50">
-            <CardTitle className="text-emerald-900">Ponentes Registrados</CardTitle>
-            <CardDescription className="text-emerald-700">
+        <Card className="border-primary/20 bg-white/80 backdrop-blur-sm">
+          <CardHeader className="border-b border-primary/10 bg-gradient-to-r from-primary/10 to-transparent">
+            <CardTitle className="text-foreground">Ponentes Registrados</CardTitle>
+            <CardDescription className="text-muted-foreground">
               Lista de todos los ponentes activos en el sistema
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
             {currentPonentes.length === 0 ? (
               <div className="text-center py-12">
-                <UserPlus className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500 text-lg">
+                <UserPlus className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+                <p className="text-gray-700 text-lg">
                   {ponentes.length === 0
                     ? "No hay ponentes registrados"
                     : "No se encontraron ponentes con esa búsqueda"}
                 </p>
-                <p className="text-gray-400 text-sm mt-2">
+                <p className="text-gray-500 text-sm mt-2">
                   {ponentes.length === 0
                     ? 'Haz clic en "Agregar Ponente" para comenzar'
                     : "Intenta ajustar la búsqueda"}
@@ -289,7 +289,7 @@ export function PonenteUploader({ user }: { user: UserData }) {
                                 {ponente.imagen && ponente.imagen.startsWith("data:") ? (
                                   <AvatarImage src={ponente.imagen || "/placeholder.svg"} alt={ponente.nombre} />
                                 ) : (
-                                  <AvatarFallback className="bg-emerald-100 text-emerald-700 font-semibold">
+                                  <AvatarFallback className="bg-primary/10 text-muted-foreground font-semibold">
                                     {ponente.nombre.charAt(0).toUpperCase()}
                                   </AvatarFallback>
                                 )}
@@ -305,7 +305,7 @@ export function PonenteUploader({ user }: { user: UserData }) {
                                   <span className="text-sm font-semibold text-gray-700">{calificacion.toFixed(1)}</span>
                                 </div>
                               ) : (
-                                <span className="text-sm text-gray-400">Sin calificaciones</span>
+                                <span className="text-sm text-gray-500">Sin calificaciones</span>
                               )}
                             </TableCell>
                             <TableCell className="max-w-xs truncate">{ponente.descripcion}</TableCell>
@@ -314,7 +314,7 @@ export function PonenteUploader({ user }: { user: UserData }) {
                                 <Button
                                   size="icon"
                                   variant="outline"
-                                  className="h-8 w-8 border-emerald-300 text-emerald-600 hover:bg-emerald-50 bg-transparent"
+                                  className="h-8 w-8 border-primary/30 text-primary hover:bg-primary/10 bg-transparent"
                                   onClick={() => handleEdit(ponente)}
                                 >
                                   <Pencil className="h-4 w-4" />
@@ -337,7 +337,7 @@ export function PonenteUploader({ user }: { user: UserData }) {
                 </div>
 
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-emerald-100">
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-primary/10">
                     <p className="text-sm text-gray-600">
                       Mostrando {startIndex + 1} - {Math.min(endIndex, filteredPonentes.length)} de{" "}
                       {filteredPonentes.length}
@@ -360,7 +360,7 @@ export function PonenteUploader({ user }: { user: UserData }) {
                             size="sm"
                             onClick={() => setCurrentPage(page)}
                             className={
-                              currentPage === page ? "bg-emerald-600 hover:bg-emerald-700" : "hover:bg-emerald-50"
+                              currentPage === page ? "bg-primary hover:bg-primary/90" : "hover:bg-primary/10"
                             }
                           >
                             {page}

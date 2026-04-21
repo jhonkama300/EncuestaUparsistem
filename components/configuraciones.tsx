@@ -233,13 +233,13 @@ export function Configuraciones({ user }: { user: UserData }) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-emerald-900">Configuraciones</h2>
-        <p className="text-sm text-emerald-700 mt-1">Gestión de base de datos de estudiantes</p>
+        <h2 className="text-2xl font-bold text-foreground">Configuraciones</h2>
+        <p className="text-sm text-muted-foreground mt-1">Gestión de base de datos de estudiantes</p>
       </div>
 
-      <Card className="border-blue-200 bg-blue-50/30">
+      <Card className="border-primary/20 bg-primary/10">
         <CardHeader>
-          <CardTitle className="text-blue-800 flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <Database className="h-5 w-5" />
             Base de Datos
           </CardTitle>
@@ -248,10 +248,10 @@ export function Configuraciones({ user }: { user: UserData }) {
         <CardContent className="space-y-6">
           {/* Importar Excel */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-blue-900">Importar desde Excel</h3>
-            <Card className="border-emerald-200">
+            <h3 className="font-semibold text-foreground">Importar desde Excel</h3>
+            <Card className="border-primary/20">
               <CardHeader>
-                <CardTitle className="text-emerald-800 text-base">Subir Archivo Excel</CardTitle>
+                <CardTitle className="text-foreground text-base">Subir Archivo Excel</CardTitle>
                 <CardDescription>
                   El archivo debe contener: Primer nombre, Segundo nombre, Primer apellido, Segundo apellido, Número de
                   identificación, Jornada, Programa, Grupo, Período, Nivel
@@ -267,24 +267,24 @@ export function Configuraciones({ user }: { user: UserData }) {
                     className="hidden"
                     disabled={uploading}
                   />
-                  <div className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-dashed border-emerald-300 bg-emerald-50 p-4 transition-colors hover:border-emerald-400 hover:bg-emerald-100">
-                    <FileSpreadsheet className="h-6 w-6 text-emerald-600" />
+                  <div className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-dashed border-primary/30 bg-primary/10 p-4 transition-colors hover:border-primary/50 hover:bg-primary/10">
+                    <FileSpreadsheet className="h-6 w-6 text-primary" />
                     <div>
-                      <p className="font-medium text-emerald-800 text-sm">
+                      <p className="font-medium text-foreground text-sm">
                         {file ? file.name : "Seleccionar archivo Excel"}
                       </p>
-                      <p className="text-xs text-gray-600">Formatos: .xlsx, .xls</p>
+                      <p className="text-xs text-muted-foreground">Formatos: .xlsx, .xls</p>
                     </div>
                   </div>
                 </label>
 
                 {showPreview && (
-                  <Card className="border-blue-200 bg-blue-50">
+                  <Card className="border-primary/20 bg-primary/10">
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Eye className="h-5 w-5 text-blue-600" />
-                          <CardTitle className="text-blue-800 text-base">Vista Previa del Archivo</CardTitle>
+                          <Eye className="h-5 w-5 text-primary" />
+                          <CardTitle className="text-foreground text-base">Vista Previa del Archivo</CardTitle>
                         </div>
                         <Button
                           variant="ghost"
@@ -317,19 +317,19 @@ export function Configuraciones({ user }: { user: UserData }) {
                       )}
                       {previewData.length > 0 && (
                         <div>
-                          <p className="mb-2 font-medium text-blue-800 text-sm">
+                          <p className="mb-2 font-medium text-foreground text-sm">
                             Primeros {previewData.length} registros:
                           </p>
                           <div className="border rounded-lg overflow-hidden bg-white">
                             <div className="max-h-64 overflow-auto">
                               <table className="w-full text-xs">
-                                <thead className="bg-blue-100 sticky top-0">
+                                <thead className="bg-primary/10 sticky top-0">
                                   <tr>
-                                    <th className="text-left p-2 font-semibold text-blue-900">Documento</th>
-                                    <th className="text-left p-2 font-semibold text-blue-900">Nombre</th>
-                                    <th className="text-left p-2 font-semibold text-blue-900">Programa</th>
-                                    <th className="text-left p-2 font-semibold text-blue-900">Grupo</th>
-                                    <th className="text-left p-2 font-semibold text-blue-900">Nivel</th>
+                                    <th className="text-left p-2 font-semibold text-foreground">Documento</th>
+                                    <th className="text-left p-2 font-semibold text-foreground">Nombre</th>
+                                    <th className="text-left p-2 font-semibold text-foreground">Programa</th>
+                                    <th className="text-left p-2 font-semibold text-foreground">Grupo</th>
+                                    <th className="text-left p-2 font-semibold text-foreground">Nivel</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -357,7 +357,7 @@ export function Configuraciones({ user }: { user: UserData }) {
                 <Button
                   onClick={handleUpload}
                   disabled={!file || uploading}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                  className="w-full bg-primary hover:bg-primary/90"
                 >
                   <Upload className="mr-2 h-4 w-4" />
                   {uploading ? "Subiendo..." : "Subir Estudiantes"}
@@ -481,7 +481,7 @@ export function Configuraciones({ user }: { user: UserData }) {
                 )}
 
                 {deleteSearchTerm && deleteSearchResults.length === 0 && !isSearchingToDelete && (
-                  <p className="text-center text-gray-600 py-4">No se encontraron estudiantes</p>
+                  <p className="text-center text-muted-foreground py-4">No se encontraron estudiantes</p>
                 )}
               </CardContent>
             </Card>

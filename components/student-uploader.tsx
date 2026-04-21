@@ -129,17 +129,17 @@ export function StudentUploader({ user }: { user: UserData }): ReactElement {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-emerald-900">Gestión de Estudiantes</h2>
-          <p className="text-sm text-emerald-700 mt-1">
+          <h2 className="text-2xl font-bold text-foreground">Gestión de Estudiantes</h2>
+          <p className="text-sm text-muted-foreground mt-1">
             {students.length} estudiante{students.length !== 1 ? "s" : ""} registrados
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setShowAddStudentDialog(true)} className="bg-green-600 hover:bg-green-700 gap-2">
+          <Button onClick={() => setShowAddStudentDialog(true)} className="bg-primary hover:bg-primary/90 gap-2">
             <UserPlus className="h-4 w-4" />
             Agregar
           </Button>
-          <Button onClick={() => setShowAssignDialog(true)} className="bg-emerald-600 hover:bg-emerald-700 gap-2">
+          <Button onClick={() => setShowAssignDialog(true)} className="bg-primary hover:bg-primary/90 gap-2">
             <Users className="h-4 w-4" />
             Asignar a Grupo
           </Button>
@@ -149,52 +149,52 @@ export function StudentUploader({ user }: { user: UserData }): ReactElement {
       {/* Stat cards compactos */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card
-          className="border-blue-200 bg-blue-50 cursor-pointer hover:shadow-md transition-shadow"
+          className="border-primary/20 bg-primary/10 cursor-pointer hover:shadow-md transition-shadow"
           onClick={clearAllFilters}
         >
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-100">
-              <Users className="h-5 w-5 text-blue-700" />
+            <div className="p-2 rounded-lg bg-primary/20">
+              <Users className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="text-xs text-blue-600 font-medium">Total</p>
-              <p className="text-2xl font-bold text-blue-900">{students.length}</p>
+              <p className="text-xs text-primary/60 font-medium">Total</p>
+              <p className="text-2xl font-bold text-foreground">{students.length}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-purple-200 bg-purple-50">
+        <Card className="border-primary/20 bg-primary/10">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-purple-100">
-              <BookOpen className="h-5 w-5 text-purple-700" />
+            <div className="p-2 rounded-lg bg-primary/20">
+              <BookOpen className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="text-xs text-purple-600 font-medium">Jornadas</p>
-              <p className="text-2xl font-bold text-purple-900">{Object.keys(countByJornada).length}</p>
+              <p className="text-xs text-primary/60 font-medium">Jornadas</p>
+              <p className="text-2xl font-bold text-foreground">{Object.keys(countByJornada).length}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-green-200 bg-green-50">
+        <Card className="border-primary/20 bg-primary/10">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-green-100">
-              <GraduationCap className="h-5 w-5 text-green-700" />
+            <div className="p-2 rounded-lg bg-primary/20">
+              <GraduationCap className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="text-xs text-green-600 font-medium">Programas</p>
-              <p className="text-2xl font-bold text-green-900">{Object.keys(countByPrograma).length}</p>
+              <p className="text-xs text-primary/60 font-medium">Programas</p>
+              <p className="text-2xl font-bold text-foreground">{Object.keys(countByPrograma).length}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-orange-200 bg-orange-50">
+        <Card className="border-primary/20 bg-primary/10">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-orange-100">
-              <Layers className="h-5 w-5 text-orange-700" />
+            <div className="p-2 rounded-lg bg-primary/20">
+              <Layers className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="text-xs text-orange-600 font-medium">Niveles</p>
-              <p className="text-2xl font-bold text-orange-900">{Object.keys(countByNivel).length}</p>
+              <p className="text-xs text-primary/60 font-medium">Niveles</p>
+              <p className="text-2xl font-bold text-foreground">{Object.keys(countByNivel).length}</p>
             </div>
           </CardContent>
         </Card>
@@ -217,7 +217,7 @@ export function StudentUploader({ user }: { user: UserData }): ReactElement {
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                       filterJornada === jornada
                         ? "bg-purple-600 text-white"
-                        : "bg-purple-100 text-purple-800 hover:bg-purple-200"
+                        : "bg-primary/20 text-purple-800 hover:bg-purple-200"
                     }`}
                   >
                     <span className="max-w-[140px] truncate">{jornada}</span>
@@ -243,7 +243,7 @@ export function StudentUploader({ user }: { user: UserData }): ReactElement {
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                       filterPrograma === programa
                         ? "bg-green-600 text-white"
-                        : "bg-green-100 text-green-800 hover:bg-green-200"
+                        : "bg-primary/20 text-green-800 hover:bg-green-200"
                     }`}
                   >
                     <span className="max-w-[140px] truncate">{programa}</span>
@@ -254,9 +254,9 @@ export function StudentUploader({ user }: { user: UserData }): ReactElement {
           </CardContent>
         </Card>
 
-        <Card className="border-orange-100">
+        <Card className="border-primary/20">
           <CardHeader className="pb-2 pt-4 px-4">
-            <CardTitle className="text-sm font-semibold text-orange-800">Por Nivel</CardTitle>
+            <CardTitle className="text-sm font-semibold text-foreground">Por Nivel</CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-4">
             <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto">
@@ -268,8 +268,8 @@ export function StudentUploader({ user }: { user: UserData }): ReactElement {
                     onClick={() => { clearAllFilters(); setFilterNivel(nivel) }}
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                       filterNivel === nivel
-                        ? "bg-orange-600 text-white"
-                        : "bg-orange-100 text-orange-800 hover:bg-orange-200"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-primary/20 text-foreground hover:bg-primary/30"
                     }`}
                   >
                     <span>Nivel {nivel}</span>
@@ -347,7 +347,7 @@ export function StudentUploader({ user }: { user: UserData }): ReactElement {
           </div>
 
           <div className="flex items-center gap-2">
-            <Search className="h-4 w-4 text-gray-400 shrink-0" />
+            <Search className="h-4 w-4 text-gray-500 shrink-0" />
             <Input
               type="text"
               placeholder="Buscar por documento, nombre, programa o grupo..."
@@ -364,20 +364,20 @@ export function StudentUploader({ user }: { user: UserData }): ReactElement {
           </div>
 
           {hasActiveFilters && (
-            <p className="text-xs text-emerald-700 font-medium">
+            <p className="text-xs text-muted-foreground font-medium">
               Mostrando {filteredStudents.length} de {students.length} estudiantes
             </p>
           )}
 
           {filteredStudents.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">No se encontraron estudiantes</p>
+            <p className="text-center text-gray-600 py-8">No se encontraron estudiantes</p>
           ) : (
             <>
               {totalPages > 1 && (
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-600">
                     {startIndex + 1}–{Math.min(endIndex, filteredStudents.length)} de {filteredStudents.length}
-                    <span className="ml-1 text-gray-400">(pág. {currentPage}/{totalPages})</span>
+                    <span className="ml-1 text-gray-500">(pág. {currentPage}/{totalPages})</span>
                   </p>
                   <Pagination>
                     <PaginationContent>
@@ -457,7 +457,7 @@ export function StudentUploader({ user }: { user: UserData }): ReactElement {
 
               {totalPages > 1 && (
                 <div className="flex items-center justify-between pt-2">
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-600">
                     {startIndex + 1}–{Math.min(endIndex, filteredStudents.length)} de {filteredStudents.length}
                   </p>
                   <Pagination>

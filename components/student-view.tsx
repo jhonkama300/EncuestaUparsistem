@@ -187,19 +187,19 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
   )
 
   return (
-    <div className="min-h-screen bg-background flex">
-      <AppSidebar user={user} onLogout={handleLogoutClick} activeTab="mi-encuesta" onTabChange={() => {}} />
+    <div className={`min-h-screen bg-background flex ${userData?.rol === "relaciones_corporativas" ? "theme-relaciones" : ""}`}>
+      <AppSidebar user={user} onLogout={handleLogoutClick} activeTab="mi-encuesta" onTabChange={() => {}} isCollapsed={false} onCollapsedChange={() => {}} />
       <main className="flex-1 lg:pl-20 pb-16 lg:pb-0 min-h-screen overflow-auto">
       <div className="container mx-auto max-w-6xl p-4 py-8">
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-foreground">Tus Encuestas</h2>
-          <p className="text-gray-600">Completa las encuestas asignadas a tu grupo</p>
+          <p className="text-gray-700">Completa las encuestas asignadas a tu grupo</p>
         </div>
 
         {loading ? (
           <Card>
             <CardContent className="py-8 text-center">
-              <p className="text-gray-600">Cargando encuestas...</p>
+              <p className="text-gray-700">Cargando encuestas...</p>
             </CardContent>
           </Card>
         ) : surveys.length === 0 ? (
@@ -207,7 +207,7 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
             <CardContent className="py-12 text-center">
               <ClipboardList className="mx-auto mb-4 h-12 w-12 text-primary/60" />
               <h3 className="mb-2 text-lg font-semibold text-gray-800">No hay encuestas disponibles</h3>
-              <p className="text-gray-600">No tienes encuestas asignadas en este momento</p>
+              <p className="text-gray-700">No tienes encuestas asignadas en este momento</p>
             </CardContent>
           </Card>
         ) : (
@@ -229,7 +229,7 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
                   <CardContent className="py-12 text-center">
                     <BookOpen className="mx-auto mb-4 h-12 w-12 text-primary/60" />
                     <h3 className="mb-2 text-lg font-semibold text-gray-800">No hay seminarios disponibles</h3>
-                    <p className="text-gray-600">No tienes seminarios asignados en este momento</p>
+                    <p className="text-gray-700">No tienes seminarios asignados en este momento</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -243,7 +243,7 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
                   <CardContent className="py-12 text-center">
                     <GraduationCap className="mx-auto mb-4 h-12 w-12 text-primary/60" />
                     <h3 className="mb-2 text-lg font-semibold text-gray-800">No hay diplomados disponibles</h3>
-                    <p className="text-gray-600">No tienes diplomados asignados en este momento</p>
+                    <p className="text-gray-700">No tienes diplomados asignados en este momento</p>
                   </CardContent>
                 </Card>
               ) : (

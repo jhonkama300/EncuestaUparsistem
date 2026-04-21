@@ -163,7 +163,7 @@ export function AssignStudentsToGroupDialog({ open, onOpenChange, onSuccess, use
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-2xl">
-            <Users className="h-6 w-6 text-emerald-600" />
+            <Users className="h-6 w-6 text-primary" />
             Asignar Estudiantes a Grupo
           </DialogTitle>
           <DialogDescription>Asigna estudiantes a un grupo existente o crea un nuevo grupo</DialogDescription>
@@ -297,7 +297,7 @@ export function AssignStudentsToGroupDialog({ open, onOpenChange, onSuccess, use
                         return (
                           <tr
                             key={student.documento}
-                            className={`hover:bg-gray-50 cursor-pointer ${isSelected ? "bg-emerald-50" : ""}`}
+                            className={`hover:bg-gray-50 cursor-pointer ${isSelected ? "bg-primary/10" : ""}`}
                             onClick={() => toggleStudent(student)}
                           >
                             <td className="px-4 py-3 border-b">
@@ -305,7 +305,7 @@ export function AssignStudentsToGroupDialog({ open, onOpenChange, onSuccess, use
                                 type="checkbox"
                                 checked={!!isSelected}
                                 onChange={() => toggleStudent(student)}
-                                className="h-4 w-4 text-emerald-600 rounded"
+                                className="h-4 w-4 text-primary rounded"
                               />
                             </td>
                             <td className="px-4 py-3 border-b font-medium">{student.documento}</td>

@@ -17,6 +17,7 @@ import {
   ClipboardList,
   Settings,
   UserCog,
+  ChevronDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -44,6 +45,8 @@ interface AppSidebarProps {
   onLogout: () => void
   activeTab: string
   onTabChange: (tab: string) => void
+  isCollapsed: boolean
+  onCollapsedChange: (collapsed: boolean) => void
 }
 
 const navItems: NavItem[] = [
@@ -91,26 +94,36 @@ const navItems: NavItem[] = [
   },
 ]
 
-export function AppSidebar({ user, onLogout, activeTab, onTabChange }: AppSidebarProps) {
+export function AppSidebar({ user, onLogout, activeTab, onTabChange, isCollapsed, onCollapsedChange }: AppSidebarProps) {
   const { resolvedTheme, setTheme } = useTheme()
   const [showLogoutModal, setShowLogoutModal] = useState(false)
-  const [isHovered, setIsHovered] = useState(false)
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false)
-
-  const handleLogout = () => {
-    onLogout()
-  }
-
-  const userRole = user.rol?.toLowerCase() || "estudiante"
-  const filteredNavItems = navItems.filter((item) => item.roles.includes(userRole))
-  const mobileMainItems = filteredNavItems.slice(0, 3)
-  const mobileMoreItems = filteredNavItems.slice(3)
+  const [isHovered, setIsHovered] = useState(false)
 
   const toggleTheme = () => {
     setTheme(resolvedTheme === "dark" ? "light" : "dark")
   }
 
-  const isExpanded = isHovered
+  const handleLogout = () => {
+    onLogout()
+  }
+
+  const handleMouseEnter = () => {
+    setIsHovered(true)
+    if (isCollapsed) onCollapsedChange(false)
+  }
+
+  const handleMouseLeave = () => {
+    setIsHovered(false)
+    if (!isCollapsed) onCollapsedChange(true)
+  }
+
+  const isExpanded = !isCollapsed
+
+  const userRole = user.rol?.toLowerCase() || "estudiante"
+  const filteredNavItems = navItems.filter((item) => item.roles.includes(userRole))
+  const mobileMainItems = filteredNavItems.slice(0, 3)
+  const mobileMoreItems = filteredNavItems.slice(3)
 
   return (
     <>
@@ -225,8 +238,8 @@ export function AppSidebar({ user, onLogout, activeTab, onTabChange }: AppSideba
           "hidden lg:flex fixed left-0 top-0 bottom-0 z-20 bg-sidebar border-r border-sidebar-border flex-col transition-all duration-300 shadow-lg",
           isExpanded ? "w-64" : "w-20",
         )}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         {/* Logo */}
         <div className={cn("p-4 border-b border-sidebar-border", !isExpanded && "px-2 py-3")}>
@@ -264,7 +277,7 @@ export function AppSidebar({ user, onLogout, activeTab, onTabChange }: AppSideba
           </Button>
         </div>
 
-        {/* User Info */}
+        {/* User Info + Role Selector */}
         <div className={cn("px-3 py-3 border-b border-sidebar-border", !isExpanded && "px-2")}>
           <div
             className={cn(

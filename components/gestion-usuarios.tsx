@@ -28,6 +28,7 @@ const ROLE_LABELS: Record<AppRole, string> = {
   uparsistem: "Uparsistem",
   relaciones_corporativas: "Relaciones Corporativas",
   estudiante: "Estudiante",
+  practicas_operador: "Prácticas Operador",
 }
 
 const ROLE_COLORS: Record<AppRole, string> = {
@@ -35,9 +36,10 @@ const ROLE_COLORS: Record<AppRole, string> = {
   uparsistem: "bg-emerald-100 text-emerald-800",
   relaciones_corporativas: "bg-blue-100 text-blue-800",
   estudiante: "bg-gray-100 text-gray-800",
+  practicas_operador: "bg-violet-100 text-violet-800",
 }
 
-const MANAGEABLE_ROLES: AppRole[] = ["admin", "uparsistem", "relaciones_corporativas"]
+const MANAGEABLE_ROLES: AppRole[] = ["admin", "uparsistem", "relaciones_corporativas", "practicas_operador"]
 
 export function GestionUsuarios({ user }: { user: UserData }) {
   const [users, setUsers] = useState<AppUser[]>([])
@@ -152,7 +154,7 @@ export function GestionUsuarios({ user }: { user: UserData }) {
         </div>
 
         {/* Roles summary cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {(
             [
               { rol: "admin" as AppRole, desc: "Acceso completo al sistema", icon: <Shield className="h-5 w-5" /> },
@@ -165,6 +167,11 @@ export function GestionUsuarios({ user }: { user: UserData }) {
                 rol: "relaciones_corporativas" as AppRole,
                 desc: "Visualización de encuestas y estadísticas",
                 icon: <UserCog className="h-5 w-5" />,
+              },
+              {
+                rol: "practicas_operador" as AppRole,
+                desc: "Gestión de encuestas, estudiantes y ponentes",
+                icon: <Users className="h-5 w-5" />,
               },
             ] as const
           ).map(({ rol, desc, icon }) => (

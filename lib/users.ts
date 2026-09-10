@@ -1,7 +1,7 @@
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore"
 import { db } from "./firebase"
 
-export type AppRole = "admin" | "uparsistem" | "relaciones_corporativas" | "estudiante"
+export type AppRole = "admin" | "uparsistem" | "relaciones_corporativas" | "estudiante" | "practicas_operador"
 
 export interface AppUser {
   id?: string

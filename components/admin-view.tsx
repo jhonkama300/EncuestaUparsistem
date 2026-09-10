@@ -16,7 +16,7 @@ interface AdminViewProps {
   onLogout: () => void
 }
 
-type RoleType = "admin" | "estudiante" | "uparsistem" | "relaciones_corporativas"
+type RoleType = "admin" | "estudiante" | "uparsistem" | "relaciones_corporativas" | "practicas_operador"
 
 export function AdminView({ user, onLogout }: AdminViewProps) {
   const [activeTab, setActiveTab] = useState("surveys")

@@ -96,7 +96,7 @@ export default function Home() {
 
   return (
     <>
-      {userData && (userData.rol === "admin" || userData.rol === "uparsistem" || userData.rol === "relaciones_corporativas") ? (
+      {userData && (userData.rol === "admin" || userData.rol === "uparsistem" || userData.rol === "relaciones_corporativas" || userData.rol === "practicas_operador") ? (
         <AdminView user={user} userData={userData} onLogout={handleLogoutConfirm} />
       ) : userData && userData.rol === "estudiante" ? (
         <StudentView user={user} userData={userData} onLogout={handleLogoutConfirm} />

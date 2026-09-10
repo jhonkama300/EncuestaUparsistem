@@ -19,8 +19,9 @@ export const db = getFirestore(app)
 
 export function getRoleCollectionName(collectionName: string, role: string): string {
   if (role === "admin") return collectionName
-  const prefix = role === "relaciones_corporativas" ? "relaciones" : "uparsistem"
-  return `${prefix}_${collectionName}`
+  if (role === "relaciones_corporativas") return `relaciones_${collectionName}`
+  if (role === "practicas_operador") return `practicas_operador_${collectionName}`
+  return `uparsistem_${collectionName}`
 }
 
 setPersistence(auth, browserLocalPersistence).catch(console.error)

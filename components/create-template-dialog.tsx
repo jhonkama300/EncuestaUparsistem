@@ -21,7 +21,7 @@ interface CreateTemplateDialogProps {
     descripcion: string
     preguntas: any[]
   }
-  user?: UserData
+  user: UserData
 }
 
 export function CreateTemplateDialog({ open, onOpenChange, onSuccess, surveyData, user }: CreateTemplateDialogProps) {
@@ -41,7 +41,7 @@ export function CreateTemplateDialog({ open, onOpenChange, onSuccess, surveyData
         preguntas: surveyData?.preguntas || [],
         categoria: categoria || undefined,
         fechaCreacion: new Date().toISOString(),
-      }, user?.rol || "estudiante")
+      }, user.rol)
 
       onSuccess()
       onOpenChange(false)

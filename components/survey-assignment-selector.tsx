@@ -26,7 +26,7 @@ interface SurveyAssignmentSelectorProps {
   onGruposChange: (grupos: any[]) => void
   onEstudiantesIndividualesChange: (estudiantes: string[]) => void
   onCategorizacionChange?: (data: { programa: string; nivel: string; periodo: string; grupo?: string }) => void
-  user?: UserData
+  user: UserData
 }
 
 export function SurveyAssignmentSelector({
@@ -71,9 +71,9 @@ export function SurveyAssignmentSelector({
 
   // Load programas list once
   const loadInitialData = async () => {
-    const values = await getUniqueStudentValues(user?.rol || "estudiante")
+    const values = await getUniqueStudentValues(user.rol)
     setAllProgramas(values.programas)
-    const ponentesData = await getPonentes(user?.rol || "estudiante")
+    const ponentesData = await getPonentes(user.rol)
     setPonentes(ponentesData)
   }
 
@@ -86,7 +86,7 @@ export function SurveyAssignmentSelector({
       setFilterGrupo("")
       return
     }
-    getStudentsByFilters({ programa: filterPrograma }, user?.rol || "estudiante").then((students) => {
+    getStudentsByFilters({ programa: filterPrograma }, user.rol).then((students) => {
       const set = new Set(students.map((s: any) => s.nivel).filter(Boolean))
       setAvailableNiveles(Array.from(set as Set<string>).sort())
     })
@@ -100,7 +100,7 @@ export function SurveyAssignmentSelector({
       setFilterGrupo("")
       return
     }
-    getStudentsByFilters({ programa: filterPrograma, nivel: filterNivel }, user?.rol || "estudiante").then((students) => {
+    getStudentsByFilters({ programa: filterPrograma, nivel: filterNivel }, user.rol).then((students) => {
       const set = new Set(students.map((s: any) => s.periodo).filter(Boolean))
       setAvailablePeriodos(Array.from(set as Set<string>).sort())
     })
@@ -113,7 +113,7 @@ export function SurveyAssignmentSelector({
       setFilterGrupo("")
       return
     }
-    getStudentsByFilters({ programa: filterPrograma, nivel: filterNivel, periodo: filterPeriodo }, user?.rol || "estudiante").then((students) => {
+    getStudentsByFilters({ programa: filterPrograma, nivel: filterNivel, periodo: filterPeriodo }, user.rol).then((students) => {
       const set = new Set(students.map((s: any) => s.grupo).filter(Boolean))
       setAvailableGrupos(Array.from(set as Set<string>).sort())
     })
@@ -133,7 +133,7 @@ export function SurveyAssignmentSelector({
     }
     const groupCounts = await Promise.all(
       grupos.map(async (grupo) => {
-        const students = await getStudentsByFilters(grupo, user?.rol || "estudiante")
+        const students = await getStudentsByFilters(grupo, user.rol)
         return students.length
       }),
     )

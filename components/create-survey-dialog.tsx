@@ -325,6 +325,7 @@ export function CreateSurveyDialog({ open, onOpenChange, onSuccess, editingSurve
                       if (per) setPeriodo(per)
                       if (g) setGruposCategoria((prev) => prev.includes(g) ? prev : [...prev, g])
                     }}
+                    user={user}
                   />
                 </TabsContent>
               </div>

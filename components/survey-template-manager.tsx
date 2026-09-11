@@ -20,7 +20,7 @@ import {
 
 interface SurveyTemplateManagerProps {
   onSelectTemplate?: (templateId: string) => void
-  user?: UserData
+  user: UserData
 }
 
 export function SurveyTemplateManager({ onSelectTemplate, user }: SurveyTemplateManagerProps) {
@@ -35,7 +35,7 @@ export function SurveyTemplateManager({ onSelectTemplate, user }: SurveyTemplate
 
   const loadTemplates = async () => {
     setLoading(true)
-    const data = await getTemplates(user?.rol || "estudiante")
+    const data = await getTemplates(user.rol)
     setTemplates(data)
     setLoading(false)
   }
@@ -44,7 +44,7 @@ export function SurveyTemplateManager({ onSelectTemplate, user }: SurveyTemplate
     if (!templateToDelete) return
 
     try {
-      await deleteTemplate(templateToDelete, user?.rol || "estudiante")
+      await deleteTemplate(templateToDelete, user.rol)
       await loadTemplates()
       setDeleteDialogOpen(false)
       setTemplateToDelete(null)

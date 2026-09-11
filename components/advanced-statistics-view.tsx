@@ -52,7 +52,7 @@ type QuestionStat = {
 }
 
 export function AdvancedStatisticsView({ user }: { user: UserData }) {
-  const role = user?.rol || "estudiante"
+  const role = user.rol
   const [surveys, setSurveys] = useState<any[]>([])
   const [ponentes, setPonentes] = useState<any[]>([])
   const [selectedSurveyId, setSelectedSurveyId] = useState<string>("all")

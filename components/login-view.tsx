@@ -69,7 +69,7 @@ export function LoginView({ onLoginStudent, onLoginAdmin }: LoginViewProps) {
         return
       }
 
-      if (["admin", "uparsistem", "relaciones_corporativas", "practicas_operador"].includes(userData.rol)) {
+      if (["admin", "uparsistem", "relaciones_corporativas", "practicas_IC-OC"].includes(userData.rol)) {
         if (!isAdmin) {
           setIsAdmin(true)
           setLoading(false)

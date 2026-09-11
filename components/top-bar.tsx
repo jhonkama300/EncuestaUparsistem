@@ -8,14 +8,14 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-type RoleType = "admin" | "estudiante" | "uparsistem" | "relaciones_corporativas" | "practicas_operador"
+type RoleType = "admin" | "estudiante" | "uparsistem" | "relaciones_corporativas" | "practicas_IC-OC"
 
 const ROLE_LABELS: Record<RoleType, string> = {
   admin: "Admin",
   estudiante: "Estudiante",
   uparsistem: "Uparsistem",
   relaciones_corporativas: "Relaciones Corporativas",
-  practicas_operador: "Prácticas Operador",
+  "practicas_IC-OC": "Prácticas IC-OC",
 }
 
 interface TopBarProps {
@@ -56,10 +56,10 @@ export function TopBar({ selectedRole, onRoleChange, userRole, sidebarCollapsed 
                     Relaciones Corporativas
                   </div>
                 </SelectItem>
-                <SelectItem value="practicas_operador">
+                <SelectItem value="practicas_IC-OC">
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-primary" />
-                    Prácticas Operador
+                    Prácticas IC-OC
                   </div>
                 </SelectItem>
               </SelectContent>

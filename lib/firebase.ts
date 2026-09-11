@@ -20,7 +20,7 @@ export const db = getFirestore(app)
 export function getRoleCollectionName(collectionName: string, role: string): string {
   if (role === "admin") return collectionName
   if (role === "relaciones_corporativas") return `relaciones_${collectionName}`
-  if (role === "practicas_operador") return `practicas_operador_${collectionName}`
+  if (role === "practicas_IC-OC") return `practicas_IC-OC_${collectionName}`
   return `uparsistem_${collectionName}`
 }
 

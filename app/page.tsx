@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { loginWithDocument, loginWithDocumentAndPassword, type UserData } from "@/lib/auth"
+import { loginWithDocument, loginWithDocumentAndPassword, getUserDataByDocument, type UserData } from "@/lib/auth"
 import { LoginView } from "@/components/login-view"
 import { StudentView } from "@/components/student-view"
 import { AdminView } from "@/components/admin-view"
@@ -31,6 +31,20 @@ export default function Home() {
         console.log("[v0] Sesión restaurada desde localStorage:", parsedUser.documento)
         setUser(parsedUser)
         setUserData(parsedUser)
+
+        // Re-validar contra Firestore por si el rol o estado cambiaron
+        getUserDataByDocument(parsedUser.documento).then((freshData) => {
+          if (freshData) {
+            setUser(freshData)
+            setUserData(freshData)
+            localStorage.setItem("uparsistem_user", JSON.stringify(freshData))
+          } else {
+            // El usuario fue eliminado de la BD, cerrar sesión
+            localStorage.removeItem("uparsistem_user")
+            setUser(null)
+            setUserData(null)
+          }
+        })
       } catch (error) {
         console.error("[v0] Error al parsear sesión guardada:", error)
         localStorage.removeItem("uparsistem_user")

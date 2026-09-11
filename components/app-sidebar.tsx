@@ -120,8 +120,9 @@ export function AppSidebar({ user, onLogout, activeTab, onTabChange, isCollapsed
 
   const isExpanded = !isCollapsed
 
-  const userRole = user.rol?.toLowerCase() || "estudiante"
-  const filteredNavItems = navItems.filter((item) => item.roles.includes(userRole))
+  const userRole = user.rol || "estudiante"
+  const userRoleKey = userRole.toLowerCase()
+  const filteredNavItems = navItems.filter((item) => item.roles.some((r) => r.toLowerCase() === userRoleKey))
   const mobileMainItems = filteredNavItems.slice(0, 3)
   const mobileMoreItems = filteredNavItems.slice(3)
 

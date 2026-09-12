@@ -96,6 +96,7 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
 
   const seminarios = surveys.filter((survey) => survey.titulo?.toUpperCase().includes("SEMINARIO"))
   const diplomados = surveys.filter((survey) => survey.titulo?.toUpperCase().includes("DIPLOMADO"))
+  const entrenamientos = surveys.filter((survey) => survey.titulo?.toUpperCase().includes("ENTRENAMIENTO"))
 
   if (selectedSurvey) {
     return (
@@ -213,7 +214,7 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
           </Card>
         ) : (
           <Tabs defaultValue="seminarios" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
               <TabsTrigger value="seminarios" className="gap-2">
                 <BookOpen className="h-4 w-4" />
                 Seminarios ({seminarios.length})
@@ -221,6 +222,10 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
               <TabsTrigger value="diplomados" className="gap-2">
                 <GraduationCap className="h-4 w-4" />
                 Diplomados ({diplomados.length})
+              </TabsTrigger>
+              <TabsTrigger value="entrenamientos" className="gap-2">
+                <BookOpen className="h-4 w-4" />
+                Entrenamientos ({entrenamientos.length})
               </TabsTrigger>
             </TabsList>
 
@@ -249,6 +254,20 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
                 </Card>
               ) : (
                 diplomados.map(renderSurveyCard)
+              )}
+            </TabsContent>
+
+            <TabsContent value="entrenamientos" className="space-y-4">
+              {entrenamientos.length === 0 ? (
+                <Card className="border-border">
+                  <CardContent className="py-12 text-center">
+                    <BookOpen className="mx-auto mb-4 h-12 w-12 text-primary/60" />
+                    <h3 className="mb-2 text-lg font-semibold text-gray-800">No hay entrenamientos disponibles</h3>
+                    <p className="text-gray-700">No tienes entrenamientos asignados en este momento</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                entrenamientos.map(renderSurveyCard)
               )}
             </TabsContent>
           </Tabs>

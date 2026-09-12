@@ -140,6 +140,8 @@ export function SurveyManager({ user }: { user: UserData }) {
         filtered = filtered.filter((s) => s.titulo?.toUpperCase().includes("SEMINARIO"))
       } else if (filterTipo === "diplomado") {
         filtered = filtered.filter((s) => s.titulo?.toUpperCase().includes("DIPLOMADO"))
+      } else if (filterTipo === "entrenamiento") {
+        filtered = filtered.filter((s) => s.titulo?.toUpperCase().includes("ENTRENAMIENTO"))
       }
     }
 
@@ -461,6 +463,7 @@ export function SurveyManager({ user }: { user: UserData }) {
                     <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="seminario">Seminarios</SelectItem>
                     <SelectItem value="diplomado">Diplomados</SelectItem>
+                    <SelectItem value="entrenamiento">Entrenamiento Práctico</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

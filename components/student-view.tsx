@@ -97,6 +97,11 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
   const seminarios = surveys.filter((survey) => survey.titulo?.toUpperCase().includes("SEMINARIO"))
   const diplomados = surveys.filter((survey) => survey.titulo?.toUpperCase().includes("DIPLOMADO"))
   const entrenamientos = surveys.filter((survey) => survey.titulo?.toUpperCase().includes("ENTRENAMIENTO"))
+  const tabs = [
+    { value: "seminarios", label: "Seminarios", count: seminarios.length, icon: BookOpen },
+    { value: "diplomados", label: "Diplomados", count: diplomados.length, icon: GraduationCap },
+    { value: "entrenamientos", label: "Entrenamientos", count: entrenamientos.length, icon: BookOpen },
+  ].filter((tab) => tab.count > 0)
 
   if (selectedSurvey) {
     return (
@@ -213,63 +218,33 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
             </CardContent>
           </Card>
         ) : (
-          <Tabs defaultValue="seminarios" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
-              <TabsTrigger value="seminarios" className="gap-2">
-                <BookOpen className="h-4 w-4" />
-                Seminarios ({seminarios.length})
-              </TabsTrigger>
-              <TabsTrigger value="diplomados" className="gap-2">
-                <GraduationCap className="h-4 w-4" />
-                Diplomados ({diplomados.length})
-              </TabsTrigger>
-              <TabsTrigger value="entrenamientos" className="gap-2">
-                <BookOpen className="h-4 w-4" />
-                Entrenamientos ({entrenamientos.length})
-              </TabsTrigger>
+          <Tabs defaultValue={tabs[0]?.value || "seminarios"} className="w-full">
+            <TabsList className={`grid w-full mb-6 ${tabs.length === 1 ? "grid-cols-1" : tabs.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+              {tabs.map((tab) => (
+                <TabsTrigger key={tab.value} value={tab.value} className="gap-2">
+                  <tab.icon className="h-4 w-4" />
+                  {tab.label} ({tab.count})
+                </TabsTrigger>
+              ))}
             </TabsList>
 
-            <TabsContent value="seminarios" className="space-y-4">
-              {seminarios.length === 0 ? (
-                <Card className="border-border">
-                  <CardContent className="py-12 text-center">
-                    <BookOpen className="mx-auto mb-4 h-12 w-12 text-primary/60" />
-                    <h3 className="mb-2 text-lg font-semibold text-gray-800">No hay seminarios disponibles</h3>
-                    <p className="text-gray-700">No tienes seminarios asignados en este momento</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                seminarios.map(renderSurveyCard)
-              )}
-            </TabsContent>
+            {seminarios.length > 0 && (
+              <TabsContent value="seminarios" className="space-y-4">
+                {seminarios.map(renderSurveyCard)}
+              </TabsContent>
+            )}
 
-            <TabsContent value="diplomados" className="space-y-4">
-              {diplomados.length === 0 ? (
-                <Card className="border-border">
-                  <CardContent className="py-12 text-center">
-                    <GraduationCap className="mx-auto mb-4 h-12 w-12 text-primary/60" />
-                    <h3 className="mb-2 text-lg font-semibold text-gray-800">No hay diplomados disponibles</h3>
-                    <p className="text-gray-700">No tienes diplomados asignados en este momento</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                diplomados.map(renderSurveyCard)
-              )}
-            </TabsContent>
+            {diplomados.length > 0 && (
+              <TabsContent value="diplomados" className="space-y-4">
+                {diplomados.map(renderSurveyCard)}
+              </TabsContent>
+            )}
 
-            <TabsContent value="entrenamientos" className="space-y-4">
-              {entrenamientos.length === 0 ? (
-                <Card className="border-border">
-                  <CardContent className="py-12 text-center">
-                    <BookOpen className="mx-auto mb-4 h-12 w-12 text-primary/60" />
-                    <h3 className="mb-2 text-lg font-semibold text-gray-800">No hay entrenamientos disponibles</h3>
-                    <p className="text-gray-700">No tienes entrenamientos asignados en este momento</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                entrenamientos.map(renderSurveyCard)
-              )}
-            </TabsContent>
+            {entrenamientos.length > 0 && (
+              <TabsContent value="entrenamientos" className="space-y-4">
+                {entrenamientos.map(renderSurveyCard)}
+              </TabsContent>
+            )}
           </Tabs>
         )}
       </div>

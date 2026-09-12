@@ -1,5 +1,5 @@
 import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, onSnapshot } from "firebase/firestore"
-import { db, getRoleCollectionName } from "./firebase"
+import { db, getRoleCollectionName, ALL_TENANT_ROLES } from "./firebase"
 
 export interface SurveyQuestion {
 // ... (keep existing SurveyQuestion interface)
@@ -204,73 +204,73 @@ export async function getAllSurveys(role: string) {
   }
 }
 
-export async function getAssignedSurveys(documento: string, role: string) {
+export async function getAssignedSurveys(documento: string, role?: string) {
   try {
-    console.log("[v0] getAssignedSurveys - Buscando estudiante:", documento, "en rol:", role)
-    const estudiantesRef = collection(db, getRoleCollectionName("estudiantes", role))
-    const qEstudiante = query(estudiantesRef, where("documento", "==", documento))
-    const estudianteSnapshot = await getDocs(qEstudiante)
-
-    if (estudianteSnapshot.empty) {
-      console.log("[v0] getAssignedSurveys - Estudiante no encontrado en colección estudiantes de rol:", role)
-      return []
-    }
-
-    const inscripciones = estudianteSnapshot.docs.map((doc) => doc.data())
-    console.log("[v0] getAssignedSurveys - Inscripciones encontradas:", inscripciones.length)
-
-    const surveysRef = collection(db, getRoleCollectionName("encuestas", role))
-    const qSurveys = query(surveysRef, where("activa", "==", true))
-    const surveysSnapshot = await getDocs(qSurveys)
-
+    console.log("[v0] getAssignedSurveys - Buscando estudiante:", documento)
     const assignedSurveysMap = new Map()
 
-    surveysSnapshot.docs.forEach((doc) => {
-      const survey = doc.data()
-      const asignacion = survey.asignacion || {}
+    for (const tenantRole of ALL_TENANT_ROLES) {
+      const estudiantesRef = collection(db, getRoleCollectionName("estudiantes", tenantRole))
+      const qEstudiante = query(estudiantesRef, where("documento", "==", documento))
+      const estudianteSnapshot = await getDocs(qEstudiante)
 
-      // Verificar asignación individual
-      if (asignacion.estudiantesIndividuales?.includes(documento)) {
-        if (!assignedSurveysMap.has(doc.id)) {
-          assignedSurveysMap.set(doc.id, { surveyDoc: doc, grupoAsignado: null })
-        }
-        return
+      if (estudianteSnapshot.empty) {
+        continue
       }
 
-      if (asignacion.grupos && asignacion.grupos.length > 0) {
-        for (const inscripcion of inscripciones) {
-          const grupoCoincidente = asignacion.grupos.find((grupo: any) => {
-            const matchPrograma = !grupo.programa || grupo.programa === inscripcion.programa
-            const matchGrupo = !grupo.grupo || grupo.grupo === inscripcion.grupo
-            const matchPeriodo = !grupo.periodo || grupo.periodo === inscripcion.periodo
-            const matchNivel = !grupo.nivel || grupo.nivel === inscripcion.nivel
+      const inscripciones = estudianteSnapshot.docs.map((docSnap) => docSnap.data())
+      console.log("[v0] getAssignedSurveys - Inscripciones en rol:", tenantRole, "->", inscripciones.length)
 
-            return matchPrograma && matchGrupo && matchPeriodo && matchNivel
-          })
+      const surveysRef = collection(db, getRoleCollectionName("encuestas", tenantRole))
+      const qSurveys = query(surveysRef, where("activa", "==", true))
+      const surveysSnapshot = await getDocs(qSurveys)
 
-          if (grupoCoincidente) {
-            if (!assignedSurveysMap.has(doc.id)) {
-              assignedSurveysMap.set(doc.id, {
-                surveyDoc: doc,
+      surveysSnapshot.docs.forEach((docSnap) => {
+        const survey = docSnap.data()
+        const asignacion = survey.asignacion || {}
+        const key = `${tenantRole}:${docSnap.id}`
+
+        if (assignedSurveysMap.has(key)) return
+
+        let match: { grupoAsignado: null | string; programaAsignado: null | string; nivelAsignado: null | string; periodoAsignado: null | string } | null = null
+
+        // Verificar asignación individual
+        if (asignacion.estudiantesIndividuales?.includes(documento)) {
+          match = { grupoAsignado: null, programaAsignado: null, nivelAsignado: null, periodoAsignado: null }
+        } else if (asignacion.grupos && asignacion.grupos.length > 0) {
+          for (const inscripcion of inscripciones) {
+            const grupoCoincidente = asignacion.grupos.find((grupo: any) => {
+              const matchPrograma = !grupo.programa || grupo.programa === inscripcion.programa
+              const matchGrupo = !grupo.grupo || grupo.grupo === inscripcion.grupo
+              const matchPeriodo = !grupo.periodo || grupo.periodo === inscripcion.periodo
+              const matchNivel = !grupo.nivel || grupo.nivel === inscripcion.nivel
+
+              return matchPrograma && matchGrupo && matchPeriodo && matchNivel
+            })
+
+            if (grupoCoincidente) {
+              match = {
                 grupoAsignado: inscripcion.grupo || null,
                 programaAsignado: inscripcion.programa || null,
                 nivelAsignado: inscripcion.nivel || null,
                 periodoAsignado: inscripcion.periodo || null,
-              })
+              }
+              break
             }
-            break
           }
         }
-      }
-    })
 
-    const respuestasRef = collection(db, getRoleCollectionName("respuestas", role))
-    const ponentesRef = collection(db, getRoleCollectionName("ponentes", role))
+        if (match) {
+          assignedSurveysMap.set(key, { surveyDoc: docSnap, tenantRole, ...match })
+        }
+      })
+    }
 
     const surveysWithStatus = await Promise.all(
       Array.from(assignedSurveysMap.values()).map(
-        async ({ surveyDoc, grupoAsignado, programaAsignado, nivelAsignado, periodoAsignado }) => {
+        async ({ surveyDoc, tenantRole, grupoAsignado, programaAsignado, nivelAsignado, periodoAsignado }) => {
           const surveyData = surveyDoc.data()
+          const respuestasRef = collection(db, getRoleCollectionName("respuestas", tenantRole))
           const qRespuesta = query(
             respuestasRef,
             where("encuestaId", "==", surveyDoc.id),
@@ -283,9 +283,8 @@ export async function getAssignedSurveys(documento: string, role: string) {
 
           if (surveyData.ponenteId) {
             console.log("[v0] Buscando ponente con ID:", surveyData.ponenteId)
-            const ponenteDocRef = doc(db, getRoleCollectionName("ponentes", role), surveyData.ponenteId)
             const ponenteDoc = await getDocs(
-              query(collection(db, getRoleCollectionName("ponentes", role)), where("__name__", "==", surveyData.ponenteId)),
+              query(collection(db, getRoleCollectionName("ponentes", tenantRole)), where("__name__", "==", surveyData.ponenteId)),
             )
 
             if (!ponenteDoc.empty) {
@@ -301,6 +300,7 @@ export async function getAssignedSurveys(documento: string, role: string) {
           return {
             id: surveyDoc.id,
             ...surveyData,
+            tenantRole,
             grupoAsignado,
             programaAsignado,
             nivelAsignado,
@@ -313,7 +313,7 @@ export async function getAssignedSurveys(documento: string, role: string) {
       ),
     )
 
-    console.log("[v0] getAssignedSurveys - Encuestas asignadas (sin duplicados):", surveysWithStatus.length)
+    console.log("[v0] getAssignedSurveys - Encuestas asignadas:", surveysWithStatus.length)
     return surveysWithStatus
   } catch (error) {
     console.error("[v0] Error obteniendo encuestas asignadas:", error)

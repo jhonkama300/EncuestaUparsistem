@@ -17,6 +17,9 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 export const db = getFirestore(app)
 
+export const ALL_TENANT_ROLES = ["admin", "uparsistem", "relaciones_corporativas", "practicas_IC-OC"] as const
+export type TenantRole = (typeof ALL_TENANT_ROLES)[number]
+
 export function getRoleCollectionName(collectionName: string, role: string): string {
   if (role === "admin") return collectionName
   if (role === "relaciones_corporativas") return `relaciones_${collectionName}`

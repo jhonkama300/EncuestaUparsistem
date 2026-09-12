@@ -7,7 +7,7 @@ import { AppSidebar } from "./app-sidebar"
 import { getAssignedSurveys, submitSurveyResponse } from "@/lib/surveys"
 import { SurveyForm } from "./survey-form"
 import { collection, query, where, onSnapshot } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { db, getRoleCollectionName, ALL_TENANT_ROLES } from "@/lib/firebase"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -29,26 +29,27 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
   useEffect(() => {
     console.log("[v0] StudentView useEffect - configurando listener en tiempo real")
 
-    const surveysRef = collection(db, "encuestas")
-    const qSurveys = query(surveysRef, where("activa", "==", true))
-
-    const unsubscribe = onSnapshot(qSurveys, async () => {
-      console.log("[v0] Cambio detectado en encuestas - recargando...")
-      await loadSurveys()
+    const unsubscribes = ALL_TENANT_ROLES.map((role) => {
+      const surveysRef = collection(db, getRoleCollectionName("encuestas", role))
+      const qSurveys = query(surveysRef, where("activa", "==", true))
+      return onSnapshot(qSurveys, async () => {
+        console.log("[v0] Cambio detectado en encuestas - recargando...")
+        await loadSurveys()
+      })
     })
 
     loadSurveys()
 
     return () => {
-      console.log("[v0] Limpiando listener de encuestas")
-      unsubscribe()
+      console.log("[v0] Limpiando listeners de encuestas")
+      unsubscribes.forEach((unsub) => unsub())
     }
   }, [user.documento])
 
   const loadSurveys = async () => {
     try {
       console.log("[v0] Cargando encuestas para:", user.documento)
-      const assignedSurveys = await getAssignedSurveys(user.documento, user.rol)
+      const assignedSurveys = await getAssignedSurveys(user.documento)
       console.log("[v0] Encuestas cargadas:", assignedSurveys.length)
       assignedSurveys.forEach((survey) => {
         console.log(
@@ -74,7 +75,7 @@ export function StudentView({ user, userData, onLogout }: StudentViewProps) {
     console.log("[v0] handleSubmitSurvey - Documento estudiante:", user.documento)
 
     try {
-      await submitSurveyResponse(surveyId, user.documento, responses, user.rol)
+      await submitSurveyResponse(surveyId, user.documento, responses, selectedSurvey?.tenantRole || "uparsistem")
       console.log("[v0] handleSubmitSurvey - Respuesta guardada exitosamente")
 
       await loadSurveys()
